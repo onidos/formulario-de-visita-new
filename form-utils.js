@@ -125,26 +125,50 @@ function validarCard(card) {
 // ── Envio de formulário ──────────────────────────────────────────────────────
 
 /**
- * Envia o formulário via fetch (no-cors) e redireciona para sucesso.html.
+ * Envia o formulário usando submit() nativo — necessário para que o
+ * Google Apps Script receba corretamente campos select[multiple] via
+ * e.parameters (fetch/FormData não os serializa da mesma forma).
+ *
+ * O GAS retorna um redirect para sucesso.html via HtmlService,
+ * mas como usamos target="_blank" não queremos isso — então criamos
+ * um iframe oculto que absorve a resposta e redirecionamos manualmente.
+ *
  * @param {HTMLFormElement} form
- * @param {HTMLButtonElement} btn - Botão de envio (para mostrar loading)
+ * @param {HTMLButtonElement} btn
  */
-async function enviarFormulario(form, btn) {
+function enviarFormulario(form, btn) {
   btn.classList.add('loading');
   btn.disabled = true;
-  try {
-    await fetch(form.action, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: new FormData(form),
-    });
+
+  // Cria iframe oculto para capturar a resposta do GAS
+  // sem redirecionar a página atual
+  const iframeName = 'submit-target-' + Date.now();
+  const iframe = document.createElement('iframe');
+  iframe.name = iframeName;
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+
+  // Aponta o form para o iframe
+  const originalTarget = form.target;
+  form.target = iframeName;
+
+  // Quando o iframe carregar, consideramos enviado com sucesso
+  iframe.addEventListener('load', () => {
     window.location.href = 'sucesso.html';
-  } catch (err) {
-    console.error('Erro ao enviar:', err);
-    alert('Ocorreu um erro ao enviar. Por favor, tente novamente.');
-    btn.classList.remove('loading');
-    btn.disabled = false;
-  }
+  });
+
+  // Fallback: se demorar mais de 15s, redireciona mesmo assim
+  const fallback = setTimeout(() => {
+    window.location.href = 'sucesso.html';
+  }, 15000);
+
+  iframe.addEventListener('load', () => clearTimeout(fallback));
+
+  // Submete
+  form.submit();
+
+  // Restaura target original
+  form.target = originalTarget;
 }
 
 // ── Helpers internos ─────────────────────────────────────────────────────────

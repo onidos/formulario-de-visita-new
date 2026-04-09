@@ -117,7 +117,12 @@ class FormEngine {
           if (ok === false) return;
         }
 
+        // Salva resposta no hidden input ANTES de navegar
         if (hiddenInput) hiddenInput.value = resposta;
+
+        // Limpa o textarea se a resposta for "Sim" (não obriga comentário)
+        if (comentario && resposta === 'Sim') comentario.classList.remove('error');
+
         this.showCard(nextId);
       });
     });
