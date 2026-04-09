@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro Enviado!</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <img src="imagens/logo.png" alt="Logo da Unidas" class="logo">
+    <div class="card success-card">
+      <span class="success-icon">✅</span>
+      <h1>Registro Enviado!</h1>
+      <p>Sua visita foi registrada com sucesso.</p>
+      <div class="navigation-buttons" style="justify-content:center">
+        <button type="button" class="next-btn" id="novo-btn" style="max-width:220px">
+          Nova Visita
+        </button>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.getElementById('novo-btn').addEventListener('click', () => {
+      localStorage.removeItem('tipo_oficina');
+      window.location.href = 'index_visita_oficina.html';
+    });
+  </script>
+</body>
+</html>
