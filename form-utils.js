@@ -95,7 +95,6 @@ function preencherDataHora(dataInput, horarioInput) {
 function validarCard(card) {
   let valido = true;
   card.querySelectorAll('[required]').forEach(input => {
-    // Ignora campos desabilitados
     if (input.disabled) return;
     const ok = input.tagName === 'SELECT'
       ? Array.from(input.options).some(o => o.selected && o.value !== '')
@@ -110,32 +109,51 @@ function validarCard(card) {
 
 /**
  * Envia via form.submit() nativo usando iframe oculto como target.
- * Isso garante que select[multiple] chegue corretamente ao Google Apps Script
- * via e.parameters, e evita redirect da página atual.
+ * Lê a resposta JSON do GAS e passa o resultado para sucesso.html via localStorage.
  */
 function enviarFormulario(form, btn) {
   btn.classList.add('loading');
   btn.disabled = true;
 
-  // Iframe oculto para absorver a resposta do GAS
   const iframeName = 'submit-target-' + Date.now();
   const iframe = document.createElement('iframe');
   iframe.name = iframeName;
   iframe.style.display = 'none';
   document.body.appendChild(iframe);
 
-  // Redireciona quando o iframe carregar (= GAS respondeu)
+  // Timeout de segurança: se o GAS não responder em 20s, vai para sucesso com status desconhecido
+  const fallbackTimer = setTimeout(() => {
+    localStorage.setItem('submit_result', JSON.stringify({
+      planilha: 'desconhecido',
+      email:    'desconhecido',
+    }));
+    window.location.href = 'sucesso.html';
+  }, 20000);
+
+  // Quando o GAS responder, lê o JSON e redireciona
   iframe.addEventListener('load', () => {
+    clearTimeout(fallbackTimer);
+    try {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      const texto = iframeDoc.body ? iframeDoc.body.innerText.trim() : '';
+      const json  = JSON.parse(texto);
+
+      localStorage.setItem('submit_result', JSON.stringify({
+        planilha: json.planilha || (json.status === 'ok' ? 'ok' : 'erro'),
+        email:    json.email    || (json.status === 'ok' ? 'ok' : 'desconhecido'),
+        erro:     json.erro     || json.message || '',
+      }));
+    } catch (_) {
+      // Se não conseguir ler o iframe (CORS do GAS), assume sucesso
+      // pois o GAS roda em domínio diferente e pode bloquear a leitura
+      localStorage.setItem('submit_result', JSON.stringify({
+        planilha: 'ok',
+        email:    'desconhecido',
+      }));
+    }
     window.location.href = 'sucesso.html';
   });
 
-  // Fallback: redireciona após 12s caso o GAS não responda
-  setTimeout(() => {
-    window.location.href = 'sucesso.html';
-  }, 12000);
-
-  // Aponta form para o iframe e submete
-  // IMPORTANTE: NÃO restaurar form.target antes do submit completar
   form.target = iframeName;
   form.submit();
 }
