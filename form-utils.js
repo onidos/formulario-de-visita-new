@@ -1,14 +1,9 @@
 /**
  * form-utils.js — Utilitários compartilhados entre todos os formulários
- * Importar ANTES do script específico de cada página.
  */
 
 // ── Geolocalização + Geocoding reverso ──────────────────────────────────────
 
-/**
- * Obtém a localização atual do usuário e preenche os campos de endereço.
- * @param {object} opts - { enderecoInput, latitudeInput, longitudeInput, cidadeInput? }
- */
 async function obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput, cidadeInput }) {
   if (!navigator.geolocation) {
     alert('A geolocalização não é suportada neste navegador.');
@@ -42,10 +37,6 @@ async function obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput, 
   );
 }
 
-/**
- * Inicializa autocomplete de endereço usando Nominatim.
- * @param {object} opts - { enderecoInput, latitudeInput, longitudeInput, cidadeInput? }
- */
 function inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput, cidadeInput }) {
   const list = document.createElement('ul');
   list.id = 'autocomplete-list';
@@ -77,7 +68,6 @@ function inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput,
     }, 500);
   });
 
-  // Fecha ao clicar fora
   document.addEventListener('click', (e) => {
     if (!enderecoInput.contains(e.target)) list.innerHTML = '';
   });
@@ -85,9 +75,6 @@ function inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput,
 
 // ── Data / Hora ─────────────────────────────────────────────────────────────
 
-/**
- * Preenche inputs de data e hora com o momento atual.
- */
 function preencherDataHora(dataInput, horarioInput) {
   const now = new Date();
   if (dataInput) {
@@ -105,14 +92,11 @@ function preencherDataHora(dataInput, horarioInput) {
 
 // ── Validação ────────────────────────────────────────────────────────────────
 
-/**
- * Valida todos os campos [required] de um card.
- * Marca com classe .error os inválidos.
- * @returns {boolean}
- */
 function validarCard(card) {
   let valido = true;
   card.querySelectorAll('[required]').forEach(input => {
+    // Ignora campos desabilitados
+    if (input.disabled) return;
     const ok = input.tagName === 'SELECT'
       ? Array.from(input.options).some(o => o.selected && o.value !== '')
       : input.value.trim() !== '';
@@ -125,50 +109,35 @@ function validarCard(card) {
 // ── Envio de formulário ──────────────────────────────────────────────────────
 
 /**
- * Envia o formulário usando submit() nativo — necessário para que o
- * Google Apps Script receba corretamente campos select[multiple] via
- * e.parameters (fetch/FormData não os serializa da mesma forma).
- *
- * O GAS retorna um redirect para sucesso.html via HtmlService,
- * mas como usamos target="_blank" não queremos isso — então criamos
- * um iframe oculto que absorve a resposta e redirecionamos manualmente.
- *
- * @param {HTMLFormElement} form
- * @param {HTMLButtonElement} btn
+ * Envia via form.submit() nativo usando iframe oculto como target.
+ * Isso garante que select[multiple] chegue corretamente ao Google Apps Script
+ * via e.parameters, e evita redirect da página atual.
  */
 function enviarFormulario(form, btn) {
   btn.classList.add('loading');
   btn.disabled = true;
 
-  // Cria iframe oculto para capturar a resposta do GAS
-  // sem redirecionar a página atual
+  // Iframe oculto para absorver a resposta do GAS
   const iframeName = 'submit-target-' + Date.now();
   const iframe = document.createElement('iframe');
   iframe.name = iframeName;
   iframe.style.display = 'none';
   document.body.appendChild(iframe);
 
-  // Aponta o form para o iframe
-  const originalTarget = form.target;
-  form.target = iframeName;
-
-  // Quando o iframe carregar, consideramos enviado com sucesso
+  // Redireciona quando o iframe carregar (= GAS respondeu)
   iframe.addEventListener('load', () => {
     window.location.href = 'sucesso.html';
   });
 
-  // Fallback: se demorar mais de 15s, redireciona mesmo assim
-  const fallback = setTimeout(() => {
+  // Fallback: redireciona após 12s caso o GAS não responda
+  setTimeout(() => {
     window.location.href = 'sucesso.html';
-  }, 15000);
+  }, 12000);
 
-  iframe.addEventListener('load', () => clearTimeout(fallback));
-
-  // Submete
+  // Aponta form para o iframe e submete
+  // IMPORTANTE: NÃO restaurar form.target antes do submit completar
+  form.target = iframeName;
   form.submit();
-
-  // Restaura target original
-  form.target = originalTarget;
 }
 
 // ── Helpers internos ─────────────────────────────────────────────────────────

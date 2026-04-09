@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
       enviarFormulario(form, btn);
     });
   }
-  setupSubmit(document.querySelector('.submit-btn'));
+  setupSubmit(document.getElementById('submit-btn'));
   setupSubmit(document.getElementById('submit-btn-prospeccao'));
 
   // ── Toggles veículos 2 e 3 ──────────────────────────────
