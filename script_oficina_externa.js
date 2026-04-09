@@ -1,49 +1,57 @@
 /**
  * script_oficina_externa.js
- * Lógica específica do formulário de Oficina Externa.
  * Depende de: form-utils.js, form-engine.js
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  const form    = document.getElementById('agendamento-form');
-  const engine  = new FormEngine(form, {
-    onBeforeNext: validacaoEspecifica,
-    onBeforeSimNao: validacaoSimNaoEspecifica,
+  const form   = document.getElementById('agendamento-form');
+  const engine = new FormEngine(form, {
+    onBeforeNext:    validacaoEspecifica,
+    onBeforeSimNao:  validacaoSimNaoEspecifica,
   });
   engine.init();
 
-  // ── Data / Hora ─────────────────────────────────────────
   preencherDataHora(
     document.getElementById('data-visita'),
     document.getElementById('horario-visita')
   );
 
-  // ── Geolocalização ───────────────────────────────────────
   const enderecoInput  = document.getElementById('endereco');
   const latitudeInput  = document.getElementById('latitude');
   const longitudeInput = document.getElementById('longitude');
   const cidadeInput    = document.getElementById('cidade-input');
-  const geoBtn         = document.getElementById('get-location');
 
-  if (geoBtn) {
-    geoBtn.addEventListener('click', () =>
-      obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput, cidadeInput })
-    );
-  }
-
+  document.getElementById('get-location')?.addEventListener('click', () =>
+    obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput, cidadeInput })
+  );
   if (enderecoInput) {
     inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput, cidadeInput });
   }
 
-  // ── Botão Home ───────────────────────────────────────────
   document.getElementById('home-btn')?.addEventListener('click', () => {
     window.location.href = 'index_visita_oficina.html';
   });
 
-  // ── Envio ────────────────────────────────────────────────
-  const submitBtn = document.querySelector('.submit-btn');
-  if (submitBtn) {
-    submitBtn.addEventListener('click', (e) => {
+  // ── Card 4b: lógica de prospecção e visita completa ──────
+  // Sobrescreve o comportamento dos botões visita-completa com capture=true
+  // para ter prioridade sobre o listener do engine
+  form.querySelectorAll('.visita-completa-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopImmediatePropagation();
+      const resposta = btn.dataset.value;
+      if (isProspeccao()) {
+        // Prospecção sempre faz a auditoria completa (vai ao card 5)
+        engine.showCard('5');
+      } else {
+        engine.showCard(resposta === 'Sim' ? '5' : '10');
+      }
+    }, true);
+  });
+
+  // ── Submit: principal e prospecção ───────────────────────
+  function setupSubmit(btn) {
+    if (!btn) return;
+    btn.addEventListener('click', (e) => {
       e.preventDefault();
       const card = engine.currentCard();
       if (!validarCard(card)) {
@@ -51,31 +59,34 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Por favor, preencha todos os campos obrigatórios.');
         return;
       }
-      enviarFormulario(form, submitBtn);
+      enviarFormulario(form, btn);
     });
   }
+  setupSubmit(document.querySelector('.submit-btn'));
+  setupSubmit(document.getElementById('submit-btn-prospeccao'));
 
-  // ── Validações específicas ────────────────────────────────
+  // ── Toggles veículos 2 e 3 ──────────────────────────────
+  document.querySelectorAll('.veiculo-skip-cb').forEach(cb => {
+    cb.addEventListener('change', () => toggleVeiculo(cb.dataset.target, cb.checked));
+  });
 
-  function validacaoEspecifica(card, nextId) {
+  // ── Validações ───────────────────────────────────────────
+  function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 15: soma dos sub-totais deve bater com o total
     if (cardId === '15') {
       const ids = ['veiculos-total','veiculos-orcamento','veiculos-pendentes',
                    'veiculos-aprovados','veiculos-aguardando','veiculos-FS'];
-      const [total, orcamento, pendentes, aprovados, aguardando, fs] =
-        ids.map(id => parseInt(document.getElementById(id)?.value) || 0);
-      const soma = orcamento + pendentes + aprovados + aguardando + fs;
-      if (soma !== total) {
+      const vals = ids.map(id => parseInt(document.getElementById(id)?.value) || 0);
+      const soma = vals[1] + vals[2] + vals[3] + vals[4] + vals[5];
+      if (soma !== vals[0]) {
         ids.forEach(id => document.getElementById(id)?.classList.add('error'));
-        alert(`A soma dos veículos (${soma}) não corresponde ao total (${total}). Por favor, corrija.`);
+        alert(`A soma dos veículos (${soma}) não corresponde ao total (${vals[0]}).`);
         return false;
       }
       ids.forEach(id => document.getElementById(id)?.classList.remove('error'));
     }
 
-    // Card 16: entregues não pode ser > total
     if (cardId === '16') {
       const total    = parseInt(document.getElementById('veiculos-total')?.value) || 0;
       const entregues = parseInt(document.getElementById('veiculos-entregues')?.value) || 0;
@@ -89,7 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function validacaoSimNaoEspecifica(card, cardId, resposta) {
-    // Card 17 (fornecedores): Se Sim, número de fornecedores é obrigatório
+    // 4b: tratado pelo listener acima, bloqueia o engine
+    if (cardId === '4b') return false;
+
     if (cardId === '17' && resposta === 'Sim') {
       const qtd = card.querySelector('#necessidade-aumento-fornecedores');
       if (qtd && !qtd.value.trim()) {
@@ -100,16 +113,43 @@ document.addEventListener('DOMContentLoaded', () => {
       qtd?.classList.remove('error');
     }
 
-    // Cards 5,6,7,8: comentário obrigatório se Não
-    const cardsComComentarioNao = ['5','6','7','8'];
-    if (cardsComComentarioNao.includes(cardId) && resposta === 'Nao') {
-      const textarea = card.querySelector('textarea');
-      if (textarea && !textarea.value.trim()) {
-        textarea.classList.add('error');
+    const comComentNao = ['5','6','7','8'];
+    if (comComentNao.includes(cardId) && resposta === 'Nao') {
+      const ta = card.querySelector('textarea');
+      if (ta && !ta.value.trim()) {
+        ta.classList.add('error');
         alert('Por favor, descreva o que precisa ser melhorado.');
         return false;
       }
-      if (textarea) textarea.classList.remove('error');
+      if (ta) ta.classList.remove('error');
     }
+
+    // Card 9: se prospecção → vai para card-9-fim
+    if (cardId === '9' && isProspeccao()) {
+      engine.showCard('9-fim');
+      return false;
+    }
+  }
+
+  function isProspeccao() {
+    const sel = document.getElementById('motivo');
+    if (!sel) return false;
+    return Array.from(sel.selectedOptions).some(o => o.value === 'Prospecção');
+  }
+
+  function toggleVeiculo(n, desabilitar) {
+    const body  = document.getElementById(`veiculo-body-${n}`);
+    const placa = document.querySelector(`[name="placa${n}"]`);
+    const card  = document.getElementById(`veiculo-card-${n}`);
+    if (!body || !placa) return;
+
+    placa.disabled = desabilitar;
+    if (desabilitar) placa.value = '';
+    body.style.display = desabilitar ? 'none' : 'block';
+    body.querySelectorAll('input, select').forEach(el => {
+      el.disabled = desabilitar;
+      if (desabilitar) el.value = '';
+    });
+    card?.classList.toggle('vehicle-card--disabled', desabilitar);
   }
 });

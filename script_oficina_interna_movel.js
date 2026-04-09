@@ -1,48 +1,55 @@
 /**
  * script_oficina_interna_movel.js
- * Lógica específica do formulário de Oficina Interna / Móvel.
  * Depende de: form-utils.js, form-engine.js
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   const form   = document.getElementById('agendamento-form');
   const engine = new FormEngine(form, {
-    onBeforeNext: validacaoEspecifica,
-    onBeforeSimNao: validacaoSimNaoEspecifica,
+    onBeforeNext:    validacaoEspecifica,
+    onBeforeSimNao:  validacaoSimNaoEspecifica,
   });
   engine.init();
 
-  // ── Data / Hora ─────────────────────────────────────────
   preencherDataHora(
     document.getElementById('data-visita'),
     document.getElementById('horario-visita')
   );
 
-  // ── Geolocalização ───────────────────────────────────────
   const enderecoInput  = document.getElementById('endereco');
   const latitudeInput  = document.getElementById('latitude');
   const longitudeInput = document.getElementById('longitude');
-  const geoBtn         = document.getElementById('get-location');
 
-  if (geoBtn) {
-    geoBtn.addEventListener('click', () =>
-      obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput })
-    );
-  }
-
+  document.getElementById('get-location')?.addEventListener('click', () =>
+    obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput })
+  );
   if (enderecoInput) {
     inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput });
   }
 
-  // ── Botão Home ───────────────────────────────────────────
   document.getElementById('home-btn')?.addEventListener('click', () => {
     window.location.href = 'index_visita_oficina.html';
   });
 
-  // ── Envio ────────────────────────────────────────────────
-  const submitBtn = document.querySelector('.submit-btn');
-  if (submitBtn) {
-    submitBtn.addEventListener('click', (e) => {
+  // ── Card 4b: lógica de prospecção e visita completa ──────
+  form.querySelectorAll('.visita-completa-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopImmediatePropagation();
+      const resposta = btn.dataset.value;
+      if (isProspeccao()) {
+        // Prospecção: vai à auditoria normalmente (card 5)
+        engine.showCard('5');
+      } else {
+        // Normal: Sim = auditoria completa, Não = pula para card 9-alt
+        engine.showCard(resposta === 'Sim' ? '5' : '9-alt');
+      }
+    }, true);
+  });
+
+  // ── Submit: principal e prospecção ───────────────────────
+  function setupSubmit(btn) {
+    if (!btn) return;
+    btn.addEventListener('click', (e) => {
       e.preventDefault();
       const card = engine.currentCard();
       if (!validarCard(card)) {
@@ -50,22 +57,27 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Por favor, preencha todos os campos obrigatórios.');
         return;
       }
-      enviarFormulario(form, submitBtn);
+      enviarFormulario(form, btn);
     });
   }
+  setupSubmit(document.querySelector('.submit-btn'));
+  setupSubmit(document.getElementById('submit-btn-prospeccao'));
 
-  // ── Validações específicas ────────────────────────────────
+  // ── Toggles veículos 2 e 3 ──────────────────────────────
+  document.querySelectorAll('.veiculo-skip-cb').forEach(cb => {
+    cb.addEventListener('change', () => toggleVeiculo(cb.dataset.target, cb.checked));
+  });
 
-  function validacaoEspecifica(card, nextId) {
+  // ── Validações ───────────────────────────────────────────
+  function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 15-alt: entregues não pode ser > total em manutenção
     if (cardId === '15-alt') {
       const total    = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
       const entregues = parseInt(document.getElementById('veiculos-entregues')?.value) || 0;
       if (entregues > total) {
         document.getElementById('veiculos-entregues')?.classList.add('error');
-        alert(`Veículos a entregar (${entregues}) não pode ser maior que o total em manutenção (${total}).`);
+        alert(`Veículos a entregar (${entregues}) não pode ser maior que o total (${total}).`);
         return false;
       }
       document.getElementById('veiculos-entregues')?.classList.remove('error');
@@ -73,7 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function validacaoSimNaoEspecifica(card, cardId, resposta) {
-    // Card 16-alt (fornecedores): número obrigatório se Sim
+    // 4b: tratado pelo listener acima, bloqueia o engine
+    if (cardId === '4b') return false;
+
     if (cardId === '16-alt' && resposta === 'Sim') {
       const qtd = card.querySelector('#necessidade-aumento-fornecedores');
       if (qtd && !qtd.value.trim()) {
@@ -84,16 +98,43 @@ document.addEventListener('DOMContentLoaded', () => {
       qtd?.classList.remove('error');
     }
 
-    // Cards com comentário obrigatório quando "Não"
-    const cardsComentarioNao = ['5','6','7','8-alt'];
-    if (cardsComentarioNao.includes(cardId) && resposta === 'Nao') {
-      const textarea = card.querySelector('textarea');
-      if (textarea && !textarea.value.trim()) {
-        textarea.classList.add('error');
+    const comComentNao = ['5','6','7','8-alt'];
+    if (comComentNao.includes(cardId) && resposta === 'Nao') {
+      const ta = card.querySelector('textarea');
+      if (ta && !ta.value.trim()) {
+        ta.classList.add('error');
         alert('Por favor, descreva o que precisa ser melhorado.');
         return false;
       }
-      if (textarea) textarea.classList.remove('error');
+      if (ta) ta.classList.remove('error');
     }
+
+    // Card 8-alt: se prospecção → vai para card-8-fim
+    if (cardId === '8-alt' && isProspeccao()) {
+      engine.showCard('8-fim');
+      return false;
+    }
+  }
+
+  function isProspeccao() {
+    const sel = document.getElementById('motivo');
+    if (!sel) return false;
+    return Array.from(sel.selectedOptions).some(o => o.value === 'Prospecção');
+  }
+
+  function toggleVeiculo(n, desabilitar) {
+    const body  = document.getElementById(`veiculo-body-${n}`);
+    const placa = document.querySelector(`[name="placa${n}"]`);
+    const card  = document.getElementById(`veiculo-card-${n}`);
+    if (!body || !placa) return;
+
+    placa.disabled = desabilitar;
+    if (desabilitar) placa.value = '';
+    body.style.display = desabilitar ? 'none' : 'block';
+    body.querySelectorAll('input, select').forEach(el => {
+      el.disabled = desabilitar;
+      if (desabilitar) el.value = '';
+    });
+    card?.classList.toggle('vehicle-card--disabled', desabilitar);
   }
 });

@@ -457,3 +457,117 @@ button.loading::after {
   .vehicle-table { font-size: .82rem; }
   .fixed-home-btn { top: 8px; left: 8px; }
 }
+
+/* ── Card de veículos (Top 3 improdutivo) ───────────────── */
+.vehicle-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.vehicle-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fafbfd;
+}
+
+.vehicle-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--brand);
+  padding: 10px 16px;
+}
+
+.vehicle-number {
+  font-family: var(--font-head);
+  font-size: .8rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.85);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+
+.placa-input {
+  flex: 1;
+  background: rgba(255,255,255,.15) !important;
+  border: 1.5px solid rgba(255,255,255,.3) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 8px 12px !important;
+  border-radius: var(--radius-sm) !important;
+  width: auto !important;
+}
+.placa-input::placeholder { color: rgba(255,255,255,.5) !important; }
+.placa-input:focus {
+  background: rgba(255,255,255,.25) !important;
+  border-color: rgba(255,255,255,.6) !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.vehicle-card-body {
+  padding: 14px 16px 10px;
+}
+
+.vehicle-card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.vehicle-card-body .input-group { margin-bottom: 10px; }
+.vehicle-card-body .input-group:last-child { margin-bottom: 0; }
+
+/* ── Card de visita completa (4b) ───────────────────────── */
+#card-4b p {
+  font-size: .95rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.7;
+  margin-bottom: 4px;
+}
+
+#card-4b .sim-nao-container {
+  margin-top: 20px;
+}
+
+@media (max-width: 480px) {
+  .vehicle-card-row { grid-template-columns: 1fr; }
+  .placa-input { font-size: .9rem !important; }
+}
+
+/* ── Toggle "Não informar" nos veículos ─────────────────── */
+.veiculo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: rgba(255,255,255,.8);
+  font-size: .78rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+.veiculo-toggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Card desabilitado */
+.vehicle-card--disabled {
+  opacity: .55;
+}
+.vehicle-card--disabled .vehicle-card-header {
+  background: #6b7a99;
+}
