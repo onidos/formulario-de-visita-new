@@ -163,33 +163,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ── Toggles veículos manuais (modo sem SAC) ──────────────
+  document.querySelectorAll('.veiculo-skip-cb').forEach(cb => {
+    cb.addEventListener('change', () => toggleVeiculo(cb.dataset.target, cb.checked));
+  });
+
   // ── Tabela de improdutivos (card 18) ──────────────────────
   function renderizarImprodutivos() {
-    const dados = AppStorage.get('sac_dados');
-    const container = document.getElementById('tabela-improdutivos');
-    if (!container) return;
+    const dados      = AppStorage.get('sac_dados');
+    const modoSAC    = document.getElementById('modo-sac');
+    const modoManual = document.getElementById('modo-manual');
+    const aviso      = document.getElementById('aviso-servico-obrig');
 
-    if (!dados || !dados.veiculos || dados.veiculos.length === 0) {
-      container.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem;padding:12px 0;">Nenhum arquivo SAC importado. Sem placas para exibir.</p>';
-      return;
+    if (dados && dados.veiculos && dados.veiculos.length > 0) {
+      // Modo SAC
+      if (modoSAC)    modoSAC.style.display    = 'block';
+      if (modoManual) modoManual.style.display  = 'none';
+
+      const servicoObrig = dados.total <= 10;
+      if (aviso) {
+        aviso.textContent = servicoObrig
+          ? '⚠️ Como a oficina tem até 10 veículos, o Tipo de Serviço é obrigatório.'
+          : 'ℹ️ Como a oficina tem mais de 10 veículos, o Tipo de Serviço é opcional.';
+        aviso.style.display = 'block';
+      }
+
+      inicializarTabelaVeiculos({
+        containerId:   'tabela-improdutivos',
+        hiddenInputId: 'veiculos-json',
+        veiculos:      dados.veiculos,
+        servicoObrig,
+      });
+    } else {
+      // Modo manual
+      if (modoSAC)    modoSAC.style.display    = 'none';
+      if (modoManual) modoManual.style.display  = 'block';
+      if (aviso)      aviso.style.display       = 'none';
     }
+  }
 
-    const servicoObrig = dados.total <= 10;
-
-    const avisoServico = document.getElementById('aviso-servico-obrig');
-    if (avisoServico) {
-      avisoServico.textContent = servicoObrig
-        ? '⚠️ Como a oficina tem até 10 veículos, o Tipo de Serviço é obrigatório para cada veículo.'
-        : 'ℹ️ Como a oficina tem mais de 10 veículos, o Tipo de Serviço é opcional.';
-      avisoServico.style.display = 'block';
-    }
-
-    inicializarTabelaVeiculos({
-      containerId:   'tabela-improdutivos',
-      hiddenInputId: 'veiculos-json',
-      veiculos:      dados.veiculos,
-      servicoObrig,
+  function toggleVeiculo(n, desabilitar) {
+    const body  = document.getElementById(`veiculo-body-${n}`);
+    const placa = document.querySelector(`[name="placa${n}"]`);
+    const card  = document.getElementById(`veiculo-card-${n}`);
+    if (!body || !placa) return;
+    placa.disabled = desabilitar;
+    if (desabilitar) placa.value = '';
+    body.style.display = desabilitar ? 'none' : 'block';
+    body.querySelectorAll('input, select').forEach(el => {
+      el.disabled = desabilitar;
+      if (desabilitar) el.value = '';
     });
+    card?.classList.toggle('vehicle-card--disabled', desabilitar);
   }
 
   function isProspeccao() {
