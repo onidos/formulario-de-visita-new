@@ -14,7 +14,7 @@ function verificarHorarioPermitido() {
   const minutos   = agora.getMinutes();
   const totalMin  = horas * 60 + minutos;
   const inicioMin = 7 * 60 + 30;   // 07:30
-  const fimMin    = 20 * 60 + 30;  // 18:30
+  const fimMin    = 18 * 60 + 30;  // 18:30
   return totalMin >= inicioMin && totalMin <= fimMin;
 }
 
