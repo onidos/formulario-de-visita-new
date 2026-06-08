@@ -14,7 +14,7 @@ function verificarHorarioPermitido() {
   const minutos   = agora.getMinutes();
   const totalMin  = horas * 60 + minutos;
   const inicioMin = 7 * 60 + 30;   // 07:30
-  const fimMin    = 18 * 60 + 30;  // 18:30
+  const fimMin    = 19 * 60 + 30;  // 18:30
   return totalMin >= inicioMin && totalMin <= fimMin;
 }
 
@@ -109,6 +109,24 @@ function aplicarMascaraCNPJ(input) {
   input.setAttribute('maxlength', '18');
   input.setAttribute('inputmode', 'numeric');
   input.setAttribute('placeholder', '00.000.000/0000-00');
+
+  function checarCNPJ() {
+    const digits = input.value.replace(/\D/g, '');
+    if (digits.length === 0) {
+      input.classList.remove('error');
+      input.setCustomValidity('');
+    } else if (digits.length < 14) {
+      input.classList.add('error');
+      input.setCustomValidity('CNPJ incompleto — deve ter 14 dígitos.');
+    } else if (!validarCNPJ(digits)) {
+      input.classList.add('error');
+      input.setCustomValidity('CNPJ inválido.');
+    } else {
+      input.classList.remove('error');
+      input.setCustomValidity('');
+    }
+  }
+
   input.addEventListener('input', () => {
     let v = input.value.replace(/\D/g, '').slice(0, 14);
     if (v.length > 12)     v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/, '$1.$2.$3/$4-$5');
@@ -117,16 +135,8 @@ function aplicarMascaraCNPJ(input) {
     else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3}).*/, '$1.$2');
     input.value = v;
   });
-  input.addEventListener('blur', () => {
-    const digits = input.value.replace(/\D/g, '');
-    if (digits.length > 0 && !validarCNPJ(digits)) {
-      input.classList.add('error');
-      input.setCustomValidity('CNPJ inválido');
-    } else {
-      input.classList.remove('error');
-      input.setCustomValidity('');
-    }
-  });
+
+  input.addEventListener('blur', checarCNPJ);
 }
 
 // ── Geolocalização + Geocoding reverso ──────────────────────────────────────
@@ -203,15 +213,19 @@ function preencherDataHora(dataInput, horarioInput) {
 function validarCard(card) {
   let valido = true;
   card.querySelectorAll('[required]').forEach(input => {
-    // Ignora campos desabilitados ou dentro de contêineres ocultos
     if (input.disabled) return;
     if (input.closest('[style*="display:none"], [style*="display: none"]')) return;
 
+    // Checa valor vazio
     const ok = input.tagName === 'SELECT'
       ? Array.from(input.options).some(o => o.selected && o.value !== '')
       : input.value.trim() !== '';
-    input.classList.toggle('error', !ok);
-    if (!ok) valido = false;
+
+    // Checa validade customizada (ex: CNPJ incompleto ou inválido)
+    const customOk = !input.validationMessage || input.validationMessage === '';
+
+    input.classList.toggle('error', !ok || !customOk);
+    if (!ok || !customOk) valido = false;
   });
   return valido;
 }
