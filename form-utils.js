@@ -95,13 +95,22 @@ const AppStorage = {
 function validarCNPJ(cnpj) {
   cnpj = cnpj.replace(/\D/g, '');
   if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
-  const calc = (str, n) => {
-    let s = 0, p = n;
-    for (let i = 0; i < n - 1; i++) { s += parseInt(str[i]) * p--; if (p < 2) p = 9; }
-    const r = s % 11;
-    return r < 2 ? 0 : 11 - r;
-  };
-  return calc(cnpj, 13) === parseInt(cnpj[12]) && calc(cnpj, 14) === parseInt(cnpj[13]);
+
+  // Pesos conforme algoritmo da Receita Federal
+  const p1 = [5,4,3,2,9,8,7,6,5,4,3,2];
+  const p2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+
+  let soma = 0;
+  for (let i = 0; i < 12; i++) soma += parseInt(cnpj[i]) * p1[i];
+  let r = soma % 11;
+  const d1 = r < 2 ? 0 : 11 - r;
+
+  soma = 0;
+  for (let i = 0; i < 13; i++) soma += parseInt(cnpj[i]) * p2[i];
+  r = soma % 11;
+  const d2 = r < 2 ? 0 : 11 - r;
+
+  return d1 === parseInt(cnpj[12]) && d2 === parseInt(cnpj[13]);
 }
 
 function aplicarMascaraCNPJ(input) {
