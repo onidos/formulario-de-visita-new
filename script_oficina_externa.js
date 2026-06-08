@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   engine.init();
 
+  // Renderiza a tabela de improdutivos sempre que o card-18 for exibido
+  const _showCardOriginalExt = engine.showCard.bind(engine);
+  engine.showCard = function(cardId) {
+    _showCardOriginalExt(cardId);
+    if (String(cardId) === '18') renderizarImprodutivos();
+  };
+
   preencherDataHora(
     document.getElementById('data-visita'),
     document.getElementById('horario-visita')
@@ -118,11 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
       }
       document.getElementById('veiculos-entregues')?.classList.remove('error');
-    }
-
-    // Card 18: renderiza tabela de improdutivos ao entrar
-    if (cardId === '18') {
-      renderizarImprodutivos();
     }
   }
 
