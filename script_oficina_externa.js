@@ -6,8 +6,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const form   = document.getElementById('agendamento-form');
   const engine = new FormEngine(form, {
-    onBeforeNext:    validacaoEspecifica,
-    onBeforeSimNao:  validacaoSimNaoEspecifica,
+    onBeforeNext:   validacaoEspecifica,
+    onBeforeSimNao: validacaoSimNaoEspecifica,
   });
   engine.init();
 
@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('horario-visita')
   );
 
-  // Máscara e validação de CNPJ
   aplicarMascaraCNPJ(document.getElementById('CNPJ_Oficina'));
 
   const enderecoInput  = document.getElementById('endereco');
@@ -27,16 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('get-location')?.addEventListener('click', () =>
     obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput, cidadeInput })
   );
-  if (enderecoInput) {
-    inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput, cidadeInput });
-  }
+  if (enderecoInput) inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput, cidadeInput });
 
   document.getElementById('home-btn')?.addEventListener('click', () => {
     window.location.href = 'index_visita_oficina.html';
   });
 
-  // ── Card 0b: Presencial / Telefone ───────────────────────
-  // Botões simples sem classe sim-nao-btn, totalmente fora do engine
+  // ── Card 0b ───────────────────────────────────────────────
   document.getElementById('btn-presencial')?.addEventListener('click', () => {
     document.getElementById('presencial-telefone').value = 'Presencial';
     engine.showCard('100');
@@ -46,50 +42,51 @@ document.addEventListener('DOMContentLoaded', () => {
     engine.showCard('100');
   });
 
-  // ── Card 4b: lógica de prospecção e visita completa ──────
+  // ── Card 4b: visita completa ──────────────────────────────
   form.querySelectorAll('.visita-completa-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopImmediatePropagation();
       const resposta = btn.dataset.value;
-      if (isProspeccao()) {
-        engine.showCard('5');
-      } else {
-        engine.showCard(resposta === 'Sim' ? '5' : '10');
-      }
+      engine.showCard(isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '10'));
     }, true);
   });
 
-  // ── Submit: principal e prospecção ───────────────────────
+  // ── SAC: importação no card de volume (card 10) ───────────
+  inicializarImportSACVolume({
+    btnId:    'btn-import-sac-vol',
+    inputId:  'input-import-sac-vol',
+    statusId: 'import-sac-vol-status',
+    idMap: {
+      total:     'veiculos-total',
+      orcamento: 'veiculos-orcamento',
+      aprovacao: 'veiculos-pendentes',
+      servico:   'veiculos-aprovados',
+      pecas:     'veiculos-aguardando',
+      fs:        'veiculos-FS',
+    },
+  });
+
+  // ── Submit ────────────────────────────────────────────────
   function setupSubmit(btn) {
     if (!btn) return;
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       const card = engine.currentCard();
-      if (!validarCard(card)) {
-        engine._shakeCard(card);
-        alert('Por favor, preencha todos os campos obrigatórios.');
-        return;
-      }
+      if (!validarCard(card)) { engine._shakeCard(card); alert('Por favor, preencha todos os campos obrigatórios.'); return; }
       enviarFormulario(form, btn);
     });
   }
   setupSubmit(document.getElementById('submit-btn'));
   setupSubmit(document.getElementById('submit-btn-prospeccao'));
 
-  // ── Toggles veículos 2 e 3 ──────────────────────────────
-  document.querySelectorAll('.veiculo-skip-cb').forEach(cb => {
-    cb.addEventListener('change', () => toggleVeiculo(cb.dataset.target, cb.checked));
-  });
-
-  // ── Validações ───────────────────────────────────────────
+  // ── Validações ────────────────────────────────────────────
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 10: se total = 0, pula direto para fornecedores (card 17)
+    // Card 10: se total = 0, pula direto para fornecedores
     if (cardId === '10') {
       const total = parseInt(document.getElementById('veiculos-total')?.value) || 0;
       if (total === 0) {
-        // Zera todos os campos intermediários para não enviar lixo
         ['veiculos-orcamento','veiculos-pendentes','veiculos-aprovados',
          'veiculos-aguardando','veiculos-FS','veiculos-entregues'].forEach(id => {
           const el = document.getElementById(id);
@@ -101,8 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (cardId === '15') {
-      const ids = ['veiculos-total','veiculos-orcamento','veiculos-pendentes',
-                   'veiculos-aprovados','veiculos-aguardando','veiculos-FS'];
+      const ids  = ['veiculos-total','veiculos-orcamento','veiculos-pendentes','veiculos-aprovados','veiculos-aguardando','veiculos-FS'];
       const vals = ids.map(id => parseInt(document.getElementById(id)?.value) || 0);
       const soma = vals[1] + vals[2] + vals[3] + vals[4] + vals[5];
       if (soma !== vals[0]) {
@@ -123,10 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       document.getElementById('veiculos-entregues')?.classList.remove('error');
     }
+
+    // Card 18: renderiza tabela de improdutivos ao entrar
+    if (cardId === '18') {
+      renderizarImprodutivos();
+    }
   }
 
   function validacaoSimNaoEspecifica(card, cardId, resposta) {
-    // 4b: tratado pelo listener acima, bloqueia o engine
     if (cardId === '4b') return false;
 
     if (cardId === '17' && resposta === 'Sim') {
@@ -141,8 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const comComentNao = ['5','6','7','8'];
     if (comComentNao.includes(cardId) && resposta === 'Nao') {
-      // Mantido aqui apenas como fallback; a validação principal é feita
-      // via data-require-comment-on-nao no HTML + form-engine.js
       const ta = card.querySelector('textarea');
       if (ta && !ta.value.trim()) {
         ta.classList.add('error');
@@ -152,32 +150,42 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ta) ta.classList.remove('error');
     }
 
-    // Card 9: se prospecção → vai para card-9-fim
-    if (cardId === '9' && isProspeccao()) {
-      engine.showCard('9-fim');
-      return false;
+    if (cardId === '9' && isProspeccao()) { engine.showCard('9-fim'); return false; }
+  }
+
+  // ── Tabela de improdutivos (card 18) ──────────────────────
+  function renderizarImprodutivos() {
+    const dados = AppStorage.get('sac_dados');
+    const container = document.getElementById('tabela-improdutivos');
+    if (!container) return;
+
+    if (!dados || !dados.veiculos || dados.veiculos.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem;">Nenhum arquivo SAC importado. Preencha as placas manualmente nos campos abaixo.</p>';
+      return;
     }
+
+    const servicoObrig = dados.total <= 10;
+
+    // Atualiza aviso de obrigatoriedade
+    const avisoServico = document.getElementById('aviso-servico-obrig');
+    if (avisoServico) {
+      avisoServico.textContent = servicoObrig
+        ? '⚠️ Como a oficina tem até 10 veículos, o Tipo de Serviço é obrigatório para cada veículo.'
+        : 'ℹ️ Como a oficina tem mais de 10 veículos, o Tipo de Serviço é opcional.';
+      avisoServico.style.display = 'block';
+    }
+
+    inicializarTabelaVeiculos({
+      containerId:   'tabela-improdutivos',
+      hiddenInputId: 'veiculos-json',
+      veiculos:      dados.veiculos,
+      servicoObrig,
+    });
   }
 
   function isProspeccao() {
     const sel = document.getElementById('motivo');
     if (!sel) return false;
     return Array.from(sel.selectedOptions).some(o => o.value === 'Prospecção');
-  }
-
-  function toggleVeiculo(n, desabilitar) {
-    const body  = document.getElementById(`veiculo-body-${n}`);
-    const placa = document.querySelector(`[name="placa${n}"]`);
-    const card  = document.getElementById(`veiculo-card-${n}`);
-    if (!body || !placa) return;
-
-    placa.disabled = desabilitar;
-    if (desabilitar) placa.value = '';
-    body.style.display = desabilitar ? 'none' : 'block';
-    body.querySelectorAll('input, select').forEach(el => {
-      el.disabled = desabilitar;
-      if (desabilitar) el.value = '';
-    });
-    card?.classList.toggle('vehicle-card--disabled', desabilitar);
   }
 });

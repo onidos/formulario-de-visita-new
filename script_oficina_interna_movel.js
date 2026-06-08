@@ -6,8 +6,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const form   = document.getElementById('agendamento-form');
   const engine = new FormEngine(form, {
-    onBeforeNext:    validacaoEspecifica,
-    onBeforeSimNao:  validacaoSimNaoEspecifica,
+    onBeforeNext:   validacaoEspecifica,
+    onBeforeSimNao: validacaoSimNaoEspecifica,
   });
   engine.init();
 
@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('horario-visita')
   );
 
-  // Máscara e validação de CNPJ
   aplicarMascaraCNPJ(document.getElementById('CNPJ_Oficina'));
 
   const enderecoInput  = document.getElementById('endereco');
@@ -26,15 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('get-location')?.addEventListener('click', () =>
     obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput })
   );
-  if (enderecoInput) {
-    inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput });
-  }
+  if (enderecoInput) inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput });
 
   document.getElementById('home-btn')?.addEventListener('click', () => {
     window.location.href = 'index_visita_oficina.html';
   });
 
-  // ── Card 0b: Presencial / Telefone ───────────────────────
+  // ── Card 0b ───────────────────────────────────────────────
   document.getElementById('btn-presencial')?.addEventListener('click', () => {
     document.getElementById('presencial-telefone').value = 'Presencial';
     engine.showCard('2');
@@ -44,50 +41,51 @@ document.addEventListener('DOMContentLoaded', () => {
     engine.showCard('2');
   });
 
-  // ── Card 4b: lógica de prospecção e visita completa ──────
+  // ── Card 4b: visita completa ──────────────────────────────
   form.querySelectorAll('.visita-completa-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopImmediatePropagation();
       const resposta = btn.dataset.value;
-      if (isProspeccao()) {
-        engine.showCard('5');
-      } else {
-        engine.showCard(resposta === 'Sim' ? '5' : '9-alt');
-      }
+      engine.showCard(isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '9-alt'));
     }, true);
   });
 
-  // ── Submit ───────────────────────────────────────────────
+  // ── SAC: importação no card de volume (card 9-alt) ────────
+  inicializarImportSACVolume({
+    btnId:    'btn-import-sac-vol',
+    inputId:  'input-import-sac-vol',
+    statusId: 'import-sac-vol-status',
+    idMap: {
+      total:     'veiculos-manutencao',
+      fs:        'veiculos-fs',
+      aprovacao: 'veiculos-aprovacao',
+      servico:   'veiculos-servico',
+      pecas:     'veiculos-pecas',
+      orcamento: 'veiculos-orcamento',
+    },
+  });
+
+  // ── Submit ────────────────────────────────────────────────
   function setupSubmit(btn) {
     if (!btn) return;
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       const card = engine.currentCard();
-      if (!validarCard(card)) {
-        engine._shakeCard(card);
-        alert('Por favor, preencha todos os campos obrigatórios.');
-        return;
-      }
+      if (!validarCard(card)) { engine._shakeCard(card); alert('Por favor, preencha todos os campos obrigatórios.'); return; }
       enviarFormulario(form, btn);
     });
   }
   setupSubmit(document.getElementById('submit-btn'));
   setupSubmit(document.getElementById('submit-btn-prospeccao'));
 
-  // ── Toggles veículos 2 e 3 ──────────────────────────────
-  document.querySelectorAll('.veiculo-skip-cb').forEach(cb => {
-    cb.addEventListener('change', () => toggleVeiculo(cb.dataset.target, cb.checked));
-  });
-
-  // ── Validações ───────────────────────────────────────────
+  // ── Validações ────────────────────────────────────────────
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 9-alt: se total = 0, pula direto para fornecedores (card 16-alt)
+    // Card 9-alt: se total = 0, pula para fornecedores
     if (cardId === '9-alt') {
       const total = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
       if (total === 0) {
-        // Zera todos os campos intermediários para não enviar lixo
         ['veiculos-fs','veiculos-aprovacao','veiculos-servico',
          'veiculos-pecas','veiculos-orcamento','veiculos-entregues'].forEach(id => {
           const el = document.getElementById(id);
@@ -107,6 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
       }
       document.getElementById('veiculos-entregues')?.classList.remove('error');
+    }
+
+    // Card 17-alt: renderiza tabela ao entrar
+    if (cardId === '17-alt') {
+      renderizarImprodutivos();
     }
   }
 
@@ -134,31 +137,41 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ta) ta.classList.remove('error');
     }
 
-    if (cardId === '8-alt' && isProspeccao()) {
-      engine.showCard('8-fim');
-      return false;
+    if (cardId === '8-alt' && isProspeccao()) { engine.showCard('8-fim'); return false; }
+  }
+
+  // ── Tabela de improdutivos (card 17-alt) ──────────────────
+  function renderizarImprodutivos() {
+    const dados = AppStorage.get('sac_dados');
+    const container = document.getElementById('tabela-improdutivos');
+    if (!container) return;
+
+    if (!dados || !dados.veiculos || dados.veiculos.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem;">Nenhum arquivo SAC importado. Preencha as placas manualmente nos campos abaixo.</p>';
+      return;
     }
+
+    const servicoObrig = dados.total <= 10;
+
+    const avisoServico = document.getElementById('aviso-servico-obrig');
+    if (avisoServico) {
+      avisoServico.textContent = servicoObrig
+        ? '⚠️ Como a oficina tem até 10 veículos, o Tipo de Serviço é obrigatório para cada veículo.'
+        : 'ℹ️ Como a oficina tem mais de 10 veículos, o Tipo de Serviço é opcional.';
+      avisoServico.style.display = 'block';
+    }
+
+    inicializarTabelaVeiculos({
+      containerId:   'tabela-improdutivos',
+      hiddenInputId: 'veiculos-json',
+      veiculos:      dados.veiculos,
+      servicoObrig,
+    });
   }
 
   function isProspeccao() {
     const sel = document.getElementById('motivo');
     if (!sel) return false;
     return Array.from(sel.selectedOptions).some(o => o.value === 'Prospecção');
-  }
-
-  function toggleVeiculo(n, desabilitar) {
-    const body  = document.getElementById(`veiculo-body-${n}`);
-    const placa = document.querySelector(`[name="placa${n}"]`);
-    const card  = document.getElementById(`veiculo-card-${n}`);
-    if (!body || !placa) return;
-
-    placa.disabled = desabilitar;
-    if (desabilitar) placa.value = '';
-    body.style.display = desabilitar ? 'none' : 'block';
-    body.querySelectorAll('input, select').forEach(el => {
-      el.disabled = desabilitar;
-      if (desabilitar) el.value = '';
-    });
-    card?.classList.toggle('vehicle-card--disabled', desabilitar);
   }
 });
