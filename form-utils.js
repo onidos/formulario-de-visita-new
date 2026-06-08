@@ -1,5 +1,5 @@
 /**
- * form-utils.js — Utilitários compartilhados entre todos os formulários
+ * form-utils.js — Utilitários compartilhados entre todos os  formulários
  */
 
 // ── Restrição de horário ─────────────────────────────────────────────────────
