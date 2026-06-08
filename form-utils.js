@@ -542,9 +542,9 @@ function inicializarImportSACVolume({ btnId, inputId, statusId, idMap, onImporta
   const btn    = document.getElementById(btnId);
   const input  = document.getElementById(inputId);
   const status = document.getElementById(statusId);
-  if (!btn || !input) return;
+  if (!input) return; // btn é opcional agora
 
-  btn.addEventListener('click', () => input.click());
+  if (btn) btn.addEventListener('click', () => input.click());
 
   input.addEventListener('change', () => {
     const file = input.files[0];
@@ -556,7 +556,7 @@ function inicializarImportSACVolume({ btnId, inputId, statusId, idMap, onImporta
       onSuccess: (dados) => {
         preencherContagemSAC(dados.contagem, idMap);
         mostrarStatus(status,
-          `✅ ${dados.total} veículos importados. Campos preenchidos automaticamente.`,
+          `✅ ${dados.total} veículos importados.`,
           'ok'
         );
         if (onImportado) onImportado(dados);
