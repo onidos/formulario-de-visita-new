@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   engine.init();
 
+  // Renderiza a tabela de improdutivos sempre que o card-17-alt for exibido
+  const _showCardOriginalInt = engine.showCard.bind(engine);
+  engine.showCard = function(cardId) {
+    _showCardOriginalInt(cardId);
+    if (String(cardId) === '17-alt') renderizarImprodutivos();
+  };
+
   preencherDataHora(
     document.getElementById('data-visita'),
     document.getElementById('horario-visita')
@@ -105,11 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
       }
       document.getElementById('veiculos-entregues')?.classList.remove('error');
-    }
-
-    // Card 17-alt: renderiza tabela ao entrar
-    if (cardId === '17-alt') {
-      renderizarImprodutivos();
     }
   }
 
