@@ -11,13 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   engine.init();
 
-  // Renderiza a tabela de improdutivos sempre que o card-17-alt for exibido
-  const _showCardOriginalInt = engine.showCard.bind(engine);
-  engine.showCard = function(cardId) {
-    _showCardOriginalInt(cardId);
-    if (String(cardId) === '17-alt') renderizarImprodutivos();
-  };
-
   preencherDataHora(
     document.getElementById('data-visita'),
     document.getElementById('horario-visita')
@@ -89,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 9-alt: se total = 0, pula para fornecedores
+    // Card 9-alt: se total = 0 ou SAC importado, pula para fornecedores
     if (cardId === '9-alt') {
       const total = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
       if (total === 0) {
@@ -98,6 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
           const el = document.getElementById(id);
           if (el) el.value = '0';
         });
+        engine.showCard('16-alt');
+        return false;
+      }
+      const sacImportado = AppStorage.get('sac_dados');
+      if (sacImportado) {
+        const elEnt = document.getElementById('veiculos-entregues');
+        if (elEnt && !elEnt.value) elEnt.value = '0';
         engine.showCard('16-alt');
         return false;
       }
@@ -140,6 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (cardId === '8-alt' && isProspeccao()) { engine.showCard('8-fim'); return false; }
+
+    // Ao sair do card de fornecedores (16-alt), renderiza a tabela antes de mostrar card 17-alt
+    if (cardId === '16-alt') {
+      setTimeout(() => renderizarImprodutivos(), 50);
+    }
   }
 
   // ── Tabela de improdutivos (card 17-alt) ──────────────────
@@ -149,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!container) return;
 
     if (!dados || !dados.veiculos || dados.veiculos.length === 0) {
-      container.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem;">Nenhum arquivo SAC importado. Preencha as placas manualmente nos campos abaixo.</p>';
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem;padding:12px 0;">Nenhum arquivo SAC importado. Sem placas para exibir.</p>';
       return;
     }
 
