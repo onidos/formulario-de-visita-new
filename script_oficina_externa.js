@@ -85,16 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const card = engine.currentCard();
 
-      // Se estiver no card de improdutivos com modo SAC ativo, usa validação própria
+      // Modo SAC: valida tabela (serviço + comentário obrigatórios)
+      const tabelaContainer = document.getElementById('tabela-improdutivos');
       const modoSAC = document.getElementById('modo-sac');
-      if (modoSAC && modoSAC.style.display !== 'none') {
-        if (!validarTabelaImprodutivos()) return;
+      if (modoSAC && modoSAC.style.display !== 'none' && tabelaContainer?._validarTodos) {
+        if (!tabelaContainer._validarTodos()) return;
       } else {
-        if (!validarCard(card)) {
-          engine._shakeCard(card);
-          alert('Por favor, preencha todos os campos obrigatórios.');
-          return;
-        }
+        if (!validarCard(card)) { engine._shakeCard(card); alert('Por favor, preencha todos os campos obrigatórios.'); return; }
       }
 
       enviarFormulario(form, btn);
@@ -200,15 +197,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const aviso      = document.getElementById('aviso-servico-obrig');
 
     if (dados && dados.veiculos && dados.veiculos.length > 0) {
-      // Modo SAC
       if (modoSAC)    modoSAC.style.display    = 'block';
       if (modoManual) modoManual.style.display  = 'none';
 
-      const servicoObrig = dados.total <= 10;
       if (aviso) {
-        aviso.textContent = servicoObrig
-          ? '⚠️ Como a oficina tem até 10 veículos, o Tipo de Serviço é obrigatório.'
-          : 'ℹ️ Como a oficina tem mais de 10 veículos, o Tipo de Serviço é opcional.';
+        aviso.textContent = '⚠️ Tipo de Serviço e Comentário são obrigatórios para todos os veículos.';
         aviso.style.display = 'block';
       }
 
@@ -216,10 +209,8 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId:   'tabela-improdutivos',
         hiddenInputId: 'veiculos-json',
         veiculos:      dados.veiculos,
-        servicoObrig,
       });
     } else {
-      // Modo manual
       if (modoSAC)    modoSAC.style.display    = 'none';
       if (modoManual) modoManual.style.display  = 'block';
       if (aviso)      aviso.style.display       = 'none';

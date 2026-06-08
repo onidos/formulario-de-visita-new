@@ -2,7 +2,88 @@
  * form-utils.js — Utilitários compartilhados entre todos os formulários
  */
 
-// ── Storage com namespace (evita vazamento entre sessões/abas) ───────────────
+// ── Restrição de horário ─────────────────────────────────────────────────────
+
+/**
+ * Verifica se o horário atual está dentro do permitido (07:30–18:30).
+ * Usa o horário LOCAL do dispositivo do analista.
+ */
+function verificarHorarioPermitido() {
+  const agora     = new Date();
+  const horas     = agora.getHours();
+  const minutos   = agora.getMinutes();
+  const totalMin  = horas * 60 + minutos;
+  const inicioMin = 7 * 60 + 30;   // 07:30
+  const fimMin    = 18 * 60 + 30;  // 18:30
+  return totalMin >= inicioMin && totalMin <= fimMin;
+}
+
+/**
+ * Se estiver fora do horário, substitui o conteúdo do container pelo aviso
+ * e retorna false. Se estiver no horário, retorna true.
+ */
+function bloquearForaDoHorario(containerSelector) {
+  if (verificarHorarioPermitido()) return true;
+
+  const container = document.querySelector(containerSelector);
+  if (!container) return false;
+
+  const agora   = new Date();
+  const hAtual  = String(agora.getHours()).padStart(2, '0');
+  const mAtual  = String(agora.getMinutes()).padStart(2, '0');
+
+  container.innerHTML = `
+    <div style="text-align:center;padding:48px 24px;">
+      <div style="font-size:3rem;margin-bottom:16px;">🔒</div>
+      <h2 style="color:var(--text,#1a1a2e);margin-bottom:8px;">Fora do Horário</h2>
+      <p style="color:var(--text-muted,#666);font-size:.95rem;max-width:320px;margin:0 auto 8px;">
+        O preenchimento está disponível apenas das <strong>07:30</strong> às <strong>18:30</strong>.
+      </p>
+      <p style="color:var(--text-muted,#666);font-size:.85rem;">
+        Horário atual: <strong>${hAtual}:${mAtual}</strong>
+      </p>
+    </div>`;
+  return false;
+}
+
+// ── Validação de comentário (mínimo 5 chars, sem spam de teclado) ────────────
+
+/**
+ * Valida se o comentário tem qualidade mínima:
+ * - Mínimo 5 caracteres
+ * - Não pode ser só uma letra repetida (aaaa, ssss)
+ * - Não pode ser sequência de teclado (asdf, qwer, zxcv, etc.)
+ */
+function validarComentario(texto) {
+  const t = (texto || '').trim();
+  if (t.length < 5) return false;
+
+  // Só caracteres repetidos: aaa, 111, ...
+  if (/^(.)\1+$/.test(t)) return false;
+
+  // Sequências comuns de teclado
+  const sequencias = [
+    'qwer','wert','erty','rtyu','tyui','yuio','uiop',
+    'asdf','sdfg','dfgh','fghj','ghjk','hjkl',
+    'zxcv','xcvb','cvbn','vbnm',
+    'qwerty','asdfg','zxcvb','qwertyuiop','asdfghjkl',
+    'abcd','bcde','cdef','defg','efgh','fghi',
+    '1234','2345','3456','4567','5678','6789',
+    'aaaa','bbbb','cccc','dddd','eeee','ffff',
+    'teste','test','aaaa','asas','lala',
+  ];
+  const tLower = t.toLowerCase();
+  if (sequencias.some(s => tLower.includes(s))) return false;
+
+  // Menos de 2 palavras distintas (só uma palavra repetida)
+  const palavras = tLower.split(/\s+/).filter(Boolean);
+  if (palavras.length >= 2) {
+    const unicas = new Set(palavras);
+    if (unicas.size === 1) return false; // "ok ok ok ok ok"
+  }
+
+  return true;
+}
 const AppStorage = {
   _key: (k) => `visita_oficina__${k}`,
   set(k, v)  { try { sessionStorage.setItem(this._key(k), JSON.stringify(v)); } catch(_){} },
@@ -321,7 +402,8 @@ const POR_PAGINA = 10;
  * @param {boolean}  opts.servicoObrig  - se true, Tipo de Serviço é obrigatório
  * @param {object[]} opts.veiculos      - lista de veículos processados
  */
-function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, servicoObrig }) {
+function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
+  // Tipo de Serviço e Comentário sempre obrigatórios
   const container   = document.getElementById(containerId);
   const hiddenInput = document.getElementById(hiddenInputId);
   if (!container) return;
@@ -329,16 +411,16 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, servi
   let paginaAtual = 0;
   const totalPaginas = Math.ceil(veiculos.length / POR_PAGINA);
 
-  // Estado editável (cópia para o usuário poder alterar)
-  const estado = veiculos.map(v => ({ ...v }));
+  const estado = veiculos.map(v => ({ ...v, comentario: v.comentario || '' }));
 
   function salvarJSON() {
     if (!hiddenInput) return;
     hiddenInput.value = JSON.stringify(estado.map(v => ({
-      placa:   v.placa,
-      status:  v.status || v.etapaOriginal,
-      entrega: v.entrega,
-      servico: v.servico || '',
+      placa:      v.placa,
+      status:     v.status || v.etapaOriginal,
+      entrega:    v.entrega,
+      servico:    v.servico || '',
+      comentario: v.comentario || '',
     })));
   }
 
@@ -360,7 +442,8 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, servi
               <th style="padding:8px 6px;">Placa</th>
               <th style="padding:8px 6px;">Status</th>
               <th style="padding:8px 6px;">Prev. Entrega</th>
-              <th style="padding:8px 6px;">Tipo Serviço${servicoObrig ? ' <span style="color:red">*</span>' : ''}</th>
+              <th style="padding:8px 6px;">Tipo Serviço <span style="color:red">*</span></th>
+              <th style="padding:8px 6px;">Comentário <span style="color:red">*</span></th>
             </tr>
           </thead>
           <tbody>
@@ -381,12 +464,17 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, servi
                     value="${v.entrega}" style="width:100%;font-size:.82rem;padding:4px;">
                 </td>
                 <td style="padding:7px 6px;">
-                  <select data-idx="${idx}" data-field="servico" style="width:100%;font-size:.82rem;padding:4px;"
-                    data-servico-obrig="${servicoObrig}">
+                  <select data-idx="${idx}" data-field="servico" style="width:100%;font-size:.82rem;padding:4px;">
                     <option value="">—</option>
                     ${['Preventiva','Corretiva','Sinistro']
                       .map(s => `<option value="${s}" ${v.servico === s ? 'selected' : ''}>${s}</option>`).join('')}
                   </select>
+                </td>
+                <td style="padding:7px 6px;">
+                  <input type="text" data-idx="${idx}" data-field="comentario"
+                    value="${(v.comentario||'').replace(/"/g,'&quot;')}"
+                    placeholder="Mín. 5 caracteres"
+                    style="width:100%;font-size:.82rem;padding:4px;min-width:140px;">
                 </td>
               </tr>`;
             }).join('')}
@@ -410,20 +498,39 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, servi
     // Eventos de edição
     container.querySelectorAll('[data-field]').forEach(el => {
       el.addEventListener('change', () => {
-        const idx   = parseInt(el.dataset.idx);
-        const field = el.dataset.field;
-        estado[idx][field] = el.value;
+        estado[parseInt(el.dataset.idx)][el.dataset.field] = el.value;
         salvarJSON();
       });
+      if (el.tagName === 'INPUT' && el.type === 'text') {
+        el.addEventListener('input', () => {
+          estado[parseInt(el.dataset.idx)][el.dataset.field] = el.value;
+          salvarJSON();
+        });
+      }
     });
 
-    // Paginação
     container.querySelector('#sac-prev-btn')?.addEventListener('click', () => { paginaAtual--; renderizar(); });
     container.querySelector('#sac-next-btn')?.addEventListener('click', () => { paginaAtual++; renderizar(); });
   }
 
+  // Validação completa exposta para o submit
+  container._validarTodos = () => {
+    let valido = true;
+    const erros = [];
+    estado.forEach((v, idx) => {
+      if (!v.servico) { erros.push(`Veículo ${idx+1} (${v.placa}): Tipo de Serviço obrigatório.`); valido = false; }
+      if (!validarComentario(v.comentario)) { erros.push(`Veículo ${idx+1} (${v.placa}): Comentário inválido (mín. 5 caracteres, sem atalhos de teclado).`); valido = false; }
+    });
+    if (!valido) {
+      const idxErro = estado.findIndex(v => !v.servico || !validarComentario(v.comentario));
+      if (idxErro >= 0) { paginaAtual = Math.floor(idxErro / POR_PAGINA); renderizar(); }
+      alert('Corrija os campos antes de enviar:\n\n' + erros.slice(0,3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length-3} erro(s).` : ''));
+    }
+    return valido;
+  };
+
   renderizar();
-  salvarJSON(); // salva estado inicial
+  salvarJSON();
 }
 
 // ── Botão de importação SAC no card de volume ────────────────────────────────
