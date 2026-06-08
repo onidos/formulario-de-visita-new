@@ -118,23 +118,7 @@ function aplicarMascaraCNPJ(input) {
   input.setAttribute('maxlength', '18');
   input.setAttribute('inputmode', 'numeric');
   input.setAttribute('placeholder', '00.000.000/0000-00');
-
-  function checarCNPJ() {
-    const digits = input.value.replace(/\D/g, '');
-    if (digits.length === 0) {
-      input.classList.remove('error');
-      input.setCustomValidity('');
-    } else if (digits.length < 14) {
-      input.classList.add('error');
-      input.setCustomValidity('CNPJ incompleto — deve ter 14 dígitos.');
-    } else if (!validarCNPJ(digits)) {
-      input.classList.add('error');
-      input.setCustomValidity('CNPJ inválido.');
-    } else {
-      input.classList.remove('error');
-      input.setCustomValidity('');
-    }
-  }
+  input.dataset.cnpjInput = 'true'; // marca para validarCard identificar
 
   input.addEventListener('input', () => {
     let v = input.value.replace(/\D/g, '').slice(0, 14);
@@ -143,9 +127,17 @@ function aplicarMascaraCNPJ(input) {
     else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
     else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3}).*/, '$1.$2');
     input.value = v;
+    input.classList.remove('error'); // limpa erro enquanto digita
   });
 
-  input.addEventListener('blur', checarCNPJ);
+  input.addEventListener('blur', () => {
+    const digits = input.value.replace(/\D/g, '');
+    if (digits.length > 0 && !validarCNPJ(digits)) {
+      input.classList.add('error');
+    } else {
+      input.classList.remove('error');
+    }
+  });
 }
 
 // ── Geolocalização + Geocoding reverso ──────────────────────────────────────
@@ -225,16 +217,18 @@ function validarCard(card) {
     if (input.disabled) return;
     if (input.closest('[style*="display:none"], [style*="display: none"]')) return;
 
-    // Checa valor vazio
-    const ok = input.tagName === 'SELECT'
+    let ok = input.tagName === 'SELECT'
       ? Array.from(input.options).some(o => o.selected && o.value !== '')
       : input.value.trim() !== '';
 
-    // Checa validade customizada (ex: CNPJ incompleto ou inválido)
-    const customOk = !input.validationMessage || input.validationMessage === '';
+    // Validação extra para campos CNPJ
+    if (ok && input.dataset.cnpjInput === 'true') {
+      const digits = input.value.replace(/\D/g, '');
+      ok = digits.length === 14 && validarCNPJ(digits);
+    }
 
-    input.classList.toggle('error', !ok || !customOk);
-    if (!ok || !customOk) valido = false;
+    input.classList.toggle('error', !ok);
+    if (!ok) valido = false;
   });
   return valido;
 }
