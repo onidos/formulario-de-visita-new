@@ -226,27 +226,38 @@
       <div class="card" id="card-9-alt" style="display:none">
         <h3>Área 2 | Informações Sobre Oficina Interna/Móvel</h3>
         <h2>Volume de Veículos</h2>
-
-        <div class="input-group" style="margin-bottom:16px;">
-          <label>Importar do Portal do Fornecedor <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></label>
-          <p style="font-size:.85rem;color:var(--text-muted);margin:4px 0 8px;">
-            Se você exportou o Relatório SAC, importe aqui. Os campos abaixo serão preenchidos automaticamente e as placas estarão prontas no próximo passo.
-          </p>
-          <input type="file" id="input-import-sac-vol" accept=".xlsx,.xls" style="display:none">
-          <button type="button" id="btn-import-sac-vol"
-            style="display:flex;align-items:center;gap:10px;background:var(--primary);color:#fff;border:none;padding:14px 24px;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;font-size:1rem;width:100%;justify-content:center;">
-            📂 Importar Placas do Portal
-          </button>
-          <span id="import-sac-vol-status" style="display:none;"></span>
-        </div>
-
         <div class="input-group">
           <label for="veiculos-manutencao">Total de veículos dentro da oficina no momento</label>
           <input type="number" inputmode="numeric" id="veiculos-manutencao" name="entry.243474358" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="4b">Anterior</button>
-          <button type="button" class="next-btn" data-card="10-alt">Próximo</button>
+          <button type="button" class="next-btn" data-card="9b-alt">Próximo</button>
+        </div>
+      </div>
+
+      <!-- Card 9b-alt: Como deseja registrar os veículos? -->
+      <div class="card" id="card-9b-alt" style="display:none">
+        <h3>Área 2 | Informações Sobre Oficina Interna/Móvel</h3>
+        <h2>Registro de Veículos</h2>
+        <p>Como deseja registrar os veículos improdutivos?</p>
+
+        <div class="sim-nao-container" style="flex-direction:column;gap:12px;margin-top:16px;">
+          <button type="button" id="btn-modo-importar"
+            style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 24px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:var(--primary);color:#fff;font-weight:600;font-size:1rem;cursor:pointer;width:100%;">
+            📂 Importar Placas do Portal
+          </button>
+          <button type="button" id="btn-modo-manual"
+            style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 24px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:#fff;color:var(--primary);font-weight:600;font-size:1rem;cursor:pointer;width:100%;">
+            ✏️ Preenchimento Manual
+          </button>
+        </div>
+
+        <input type="file" id="input-import-sac-vol" accept=".xlsx,.xls" style="display:none">
+        <span id="import-sac-vol-status" style="display:none;margin-top:10px;font-size:.88rem;"></span>
+
+        <div class="navigation-buttons" style="margin-top:20px;">
+          <button type="button" class="prev-btn" data-card="9-alt">Anterior</button>
         </div>
       </div>
 

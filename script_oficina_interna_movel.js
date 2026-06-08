@@ -50,7 +50,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }, true);
   });
 
-  // ── SAC: importação no card de volume (card 9-alt) ────────
+  // ── Card 9b-alt: escolha de modo (importar ou manual) ────
+  document.getElementById('btn-modo-importar')?.addEventListener('click', () => {
+    document.getElementById('input-import-sac-vol')?.click();
+  });
+
+  document.getElementById('btn-modo-manual')?.addEventListener('click', () => {
+    AppStorage.remove('sac_dados');
+    atualizarPrevFornecedores();
+    engine.showCard('10-alt');
+  });
+
   inicializarImportSACVolume({
     btnId:    'btn-import-sac-vol',
     inputId:  'input-import-sac-vol',
@@ -63,7 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
       pecas:     'veiculos-pecas',
       orcamento: 'veiculos-orcamento',
     },
-    onImportado: () => atualizarPrevFornecedores(),
+    onImportado: () => {
+      atualizarPrevFornecedores();
+      engine.showCard('16-alt');
+    },
   });
 
   // Atualiza o Anterior do card de fornecedores dinamicamente
@@ -101,9 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 9-alt: se total = 0 pula para fornecedores
-    // Se SAC importado pula cards de detalhe e vai para fornecedores
-    // Se manual (sem SAC), segue fluxo normal (cards 10-alt→...→16-alt)
+    // Card 9-alt: se total = 0 pula direto para fornecedores
     if (cardId === '9-alt') {
       const total = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
       if (total === 0) {
@@ -112,17 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const el = document.getElementById(id);
           if (el) el.value = '0';
         });
+        AppStorage.remove('sac_dados');
         engine.showCard('16-alt');
         return false;
       }
-      const sacImportado = AppStorage.get('sac_dados');
-      if (sacImportado) {
-        const elEnt = document.getElementById('veiculos-entregues');
-        if (elEnt && !elEnt.value) elEnt.value = '0';
-        engine.showCard('16-alt');
-        return false;
-      }
-      // Sem SAC: segue fluxo normal → card 10-alt
     }
 
     if (cardId === '15-alt') {

@@ -51,9 +51,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }, true);
   });
 
-  // ── SAC: importação no card de volume (card 10) ───────────
+  // ── Card 10b: escolha de modo (importar ou manual) ───────
+  document.getElementById('btn-modo-importar')?.addEventListener('click', () => {
+    document.getElementById('input-import-sac-vol')?.click();
+  });
+
+  document.getElementById('btn-modo-manual')?.addEventListener('click', () => {
+    // Limpa qualquer SAC anterior e segue fluxo manual
+    AppStorage.remove('sac_dados');
+    atualizarPrevFornecedores();
+    engine.showCard('11');
+  });
+
   inicializarImportSACVolume({
-    btnId:    'btn-import-sac-vol',
+    btnId:    'btn-import-sac-vol',   // não usado (disparado via btn-modo-importar)
     inputId:  'input-import-sac-vol',
     statusId: 'import-sac-vol-status',
     idMap: {
@@ -64,7 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
       pecas:     'veiculos-aguardando',
       fs:        'veiculos-FS',
     },
-    onImportado: () => atualizarPrevFornecedores(),
+    onImportado: () => {
+      atualizarPrevFornecedores();
+      engine.showCard('17');
+    },
   });
 
   // Atualiza o Anterior do card de fornecedores dinamicamente
@@ -104,9 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 10: se total = 0 pula para fornecedores
-    // Se SAC foi importado pula cards de detalhe e vai direto para fornecedores
-    // Se manual (sem SAC), segue fluxo normal (cards 11→15→16→17)
+    // Card 10: se total = 0 pula direto para fornecedores (sem perguntar modo)
     if (cardId === '10') {
       const total = parseInt(document.getElementById('veiculos-total')?.value) || 0;
       if (total === 0) {
@@ -115,17 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const el = document.getElementById(id);
           if (el) el.value = '0';
         });
+        AppStorage.remove('sac_dados');
         engine.showCard('17');
         return false;
       }
-      const sacImportado = AppStorage.get('sac_dados');
-      if (sacImportado) {
-        const elEnt = document.getElementById('veiculos-entregues');
-        if (elEnt && !elEnt.value) elEnt.value = '0';
-        engine.showCard('17');
-        return false;
-      }
-      // Sem SAC: segue fluxo normal → card 11
     }
 
     if (cardId === '15') {
