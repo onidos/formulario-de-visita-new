@@ -83,6 +83,21 @@ document.addEventListener('DOMContentLoaded', () => {
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
+    // Card 9-alt: se total = 0, pula direto para fornecedores (card 16-alt)
+    if (cardId === '9-alt') {
+      const total = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
+      if (total === 0) {
+        // Zera todos os campos intermediários para não enviar lixo
+        ['veiculos-fs','veiculos-aprovacao','veiculos-servico',
+         'veiculos-pecas','veiculos-orcamento','veiculos-entregues'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '0';
+        });
+        engine.showCard('16-alt');
+        return false;
+      }
+    }
+
     if (cardId === '15-alt') {
       const total     = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
       const entregues = parseInt(document.getElementById('veiculos-entregues')?.value) || 0;
