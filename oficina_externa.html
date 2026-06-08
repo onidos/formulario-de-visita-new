@@ -274,7 +274,7 @@
           <input type="number" inputmode="numeric" id="veiculos-total" name="entry.1586662502" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
-          <button type="button" class="prev-btn" data-card="9">Anterior</button>
+          <button type="button" class="prev-btn" data-card="4b">Anterior</button>
           <button type="button" class="next-btn" data-card="11">Próximo</button>
         </div>
       </div>
@@ -382,18 +382,134 @@
         <input type="hidden" name="entry.1359946908">
       </div>
 
-      <!-- Card 18: Veículos improdutivos -->
+      <!-- Card 18: Veículos improdutivos (SAC ou manual) -->
       <div class="card" id="card-18" style="display:none">
         <h3>Área 2 | Informações Sobre Oficina Externa</h3>
         <h2>Veículos no Improdutivo</h2>
-        <p>Veículos ordenados do mais antigo para o mais recente. Confira e ajuste os dados se necessário.</p>
 
         <p id="aviso-servico-obrig" style="display:none;padding:10px 14px;border-radius:var(--radius-sm);background:#fffbf0;border:1px solid #f0d080;font-size:.87rem;margin-bottom:12px;"></p>
 
-        <div id="tabela-improdutivos"></div>
+        <!-- Modo SAC: tabela dinâmica -->
+        <div id="modo-sac" style="display:none;">
+          <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:12px;">Veículos ordenados do mais antigo para o mais recente. Confira e ajuste se necessário.</p>
+          <div id="tabela-improdutivos"></div>
+          <input type="hidden" id="veiculos-json" name="entry.veiculos_json">
+        </div>
 
-        <!-- Campo hidden que receberá o JSON completo de todos os veículos -->
-        <input type="hidden" id="veiculos-json" name="entry.veiculos_json">
+        <!-- Modo manual: 3 campos de placa -->
+        <div id="modo-manual" style="display:none;">
+          <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:12px;">Registre os veículos há mais tempo parados na oficina.</p>
+          <div class="vehicle-cards">
+
+            <div class="vehicle-card" id="veiculo-card-1">
+              <div class="vehicle-card-header">
+                <span class="vehicle-number">Veículo 1</span>
+                <input type="text" name="placa1" placeholder="AAA-0000" class="placa-input" required>
+              </div>
+              <div class="vehicle-card-body" id="veiculo-body-1">
+                <div class="input-group">
+                  <label>Tipo de Serviço</label>
+                  <select name="servico1[]" multiple required>
+                    <option value="Preventiva">Preventiva</option>
+                    <option value="Corretiva">Corretiva</option>
+                    <option value="Sinistro">Sinistro</option>
+                  </select>
+                </div>
+                <div class="vehicle-card-row">
+                  <div class="input-group">
+                    <label>Dt. Prev. Entrega</label>
+                    <input type="date" name="data1" required>
+                  </div>
+                  <div class="input-group">
+                    <label>Status</label>
+                    <select name="status1" required>
+                      <option value="" disabled selected>Selecione</option>
+                      <option value="Fora de Serviço">Fora de Serviço</option>
+                      <option value="Pend. Orçamento">Pend. Orçamento</option>
+                      <option value="Pend. Aprovação">Pend. Aprovação</option>
+                      <option value="Erro Material">Erro Material</option>
+                      <option value="Pend. Peça">Pend. Peça</option>
+                      <option value="Em Serviço">Em Serviço</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="vehicle-card" id="veiculo-card-2">
+              <div class="vehicle-card-header">
+                <span class="vehicle-number">Veículo 2</span>
+                <input type="text" name="placa2" placeholder="AAA-0000" class="placa-input">
+                <label class="veiculo-toggle"><input type="checkbox" class="veiculo-skip-cb" data-target="2"> Não informar</label>
+              </div>
+              <div class="vehicle-card-body" id="veiculo-body-2">
+                <div class="input-group">
+                  <label>Tipo de Serviço</label>
+                  <select name="servico2[]" multiple>
+                    <option value="Preventiva">Preventiva</option>
+                    <option value="Corretiva">Corretiva</option>
+                    <option value="Sinistro">Sinistro</option>
+                  </select>
+                </div>
+                <div class="vehicle-card-row">
+                  <div class="input-group">
+                    <label>Dt. Prev. Entrega</label>
+                    <input type="date" name="data2">
+                  </div>
+                  <div class="input-group">
+                    <label>Status</label>
+                    <select name="status2">
+                      <option value="" disabled selected>Selecione</option>
+                      <option value="Fora de Serviço">Fora de Serviço</option>
+                      <option value="Pend. Orçamento">Pend. Orçamento</option>
+                      <option value="Pend. Aprovação">Pend. Aprovação</option>
+                      <option value="Erro Material">Erro Material</option>
+                      <option value="Pend. Peça">Pend. Peça</option>
+                      <option value="Em Serviço">Em Serviço</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="vehicle-card" id="veiculo-card-3">
+              <div class="vehicle-card-header">
+                <span class="vehicle-number">Veículo 3</span>
+                <input type="text" name="placa3" placeholder="AAA-0000" class="placa-input">
+                <label class="veiculo-toggle"><input type="checkbox" class="veiculo-skip-cb" data-target="3"> Não informar</label>
+              </div>
+              <div class="vehicle-card-body" id="veiculo-body-3">
+                <div class="input-group">
+                  <label>Tipo de Serviço</label>
+                  <select name="servico3[]" multiple>
+                    <option value="Preventiva">Preventiva</option>
+                    <option value="Corretiva">Corretiva</option>
+                    <option value="Sinistro">Sinistro</option>
+                  </select>
+                </div>
+                <div class="vehicle-card-row">
+                  <div class="input-group">
+                    <label>Dt. Prev. Entrega</label>
+                    <input type="date" name="data3">
+                  </div>
+                  <div class="input-group">
+                    <label>Status</label>
+                    <select name="status3">
+                      <option value="" disabled selected>Selecione</option>
+                      <option value="Fora de Serviço">Fora de Serviço</option>
+                      <option value="Pend. Orçamento">Pend. Orçamento</option>
+                      <option value="Pend. Aprovação">Pend. Aprovação</option>
+                      <option value="Erro Material">Erro Material</option>
+                      <option value="Pend. Peça">Pend. Peça</option>
+                      <option value="Em Serviço">Em Serviço</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /.vehicle-cards -->
+        </div><!-- /#modo-manual -->
 
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="17">Anterior</button>
