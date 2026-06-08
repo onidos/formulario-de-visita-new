@@ -122,7 +122,10 @@ function preencherDataHora(dataInput, horarioInput) {
 function validarCard(card) {
   let valido = true;
   card.querySelectorAll('[required]').forEach(input => {
+    // Ignora campos desabilitados ou dentro de contêineres ocultos
     if (input.disabled) return;
+    if (input.closest('[style*="display:none"], [style*="display: none"]')) return;
+
     const ok = input.tagName === 'SELECT'
       ? Array.from(input.options).some(o => o.selected && o.value !== '')
       : input.value.trim() !== '';
@@ -379,7 +382,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, servi
                 </td>
                 <td style="padding:7px 6px;">
                   <select data-idx="${idx}" data-field="servico" style="width:100%;font-size:.82rem;padding:4px;"
-                    ${servicoObrig ? 'required' : ''}>
+                    data-servico-obrig="${servicoObrig}">
                     <option value="">—</option>
                     ${['Preventiva','Corretiva','Sinistro']
                       .map(s => `<option value="${s}" ${v.servico === s ? 'selected' : ''}>${s}</option>`).join('')}
@@ -479,4 +482,24 @@ function mostrarStatus(el, msg, tipo) {
     : tipo === 'erro'
       ? 'var(--danger,#c0392b)'
       : 'var(--text-muted,#666)';
+}
+
+// ── Validação do card de improdutivos (modo SAC) ─────────────────────────────
+/**
+ * Valida se todos os selects de serviço obrigatórios estão preenchidos na tabela SAC.
+ * Retorna true se válido, false se não.
+ */
+function validarTabelaImprodutivos() {
+  const selects = document.querySelectorAll('[data-field="servico"][data-servico-obrig="true"]');
+  let valido = true;
+  selects.forEach(sel => {
+    if (!sel.value) {
+      sel.style.border = '2px solid red';
+      valido = false;
+    } else {
+      sel.style.border = '';
+    }
+  });
+  if (!valido) alert('Por favor, selecione o Tipo de Serviço para todos os veículos obrigatórios.');
+  return valido;
 }

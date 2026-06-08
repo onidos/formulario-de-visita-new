@@ -64,7 +64,19 @@ document.addEventListener('DOMContentLoaded', () => {
       pecas:     'veiculos-aguardando',
       fs:        'veiculos-FS',
     },
+    onImportado: () => atualizarPrevFornecedores(),
   });
+
+  // Atualiza o Anterior do card de fornecedores dinamicamente
+  function atualizarPrevFornecedores() {
+    const btn = document.getElementById('prev-btn-17');
+    if (!btn) return;
+    const sacImportado = AppStorage.get('sac_dados');
+    btn.dataset.card = sacImportado ? '10' : '16';
+  }
+
+  // Chama ao iniciar (caso a página recarregue com dados em sessão)
+  atualizarPrevFornecedores();
 
   // ── Submit ────────────────────────────────────────────────
   function setupSubmit(btn) {
@@ -72,7 +84,19 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       const card = engine.currentCard();
-      if (!validarCard(card)) { engine._shakeCard(card); alert('Por favor, preencha todos os campos obrigatórios.'); return; }
+
+      // Se estiver no card de improdutivos com modo SAC ativo, usa validação própria
+      const modoSAC = document.getElementById('modo-sac');
+      if (modoSAC && modoSAC.style.display !== 'none') {
+        if (!validarTabelaImprodutivos()) return;
+      } else {
+        if (!validarCard(card)) {
+          engine._shakeCard(card);
+          alert('Por favor, preencha todos os campos obrigatórios.');
+          return;
+        }
+      }
+
       enviarFormulario(form, btn);
     });
   }
