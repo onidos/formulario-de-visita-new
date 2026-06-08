@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('horario-visita')
   );
 
+  // Máscara e validação de CNPJ
+  aplicarMascaraCNPJ(document.getElementById('CNPJ_Oficina'));
+
   const enderecoInput  = document.getElementById('endereco');
   const latitudeInput  = document.getElementById('latitude');
   const longitudeInput = document.getElementById('longitude');
@@ -32,15 +35,23 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = 'index_visita_oficina.html';
   });
 
+  // ── Card 0b: Presencial / Telefone ───────────────────────
+  // Botões simples sem classe sim-nao-btn, totalmente fora do engine
+  document.getElementById('btn-presencial')?.addEventListener('click', () => {
+    document.getElementById('presencial-telefone').value = 'Presencial';
+    engine.showCard('100');
+  });
+  document.getElementById('btn-telefone')?.addEventListener('click', () => {
+    document.getElementById('presencial-telefone').value = 'Telefone';
+    engine.showCard('100');
+  });
+
   // ── Card 4b: lógica de prospecção e visita completa ──────
-  // Sobrescreve o comportamento dos botões visita-completa com capture=true
-  // para ter prioridade sobre o listener do engine
   form.querySelectorAll('.visita-completa-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopImmediatePropagation();
       const resposta = btn.dataset.value;
       if (isProspeccao()) {
-        // Prospecção sempre faz a auditoria completa (vai ao card 5)
         engine.showCard('5');
       } else {
         engine.showCard(resposta === 'Sim' ? '5' : '10');
@@ -88,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (cardId === '16') {
-      const total    = parseInt(document.getElementById('veiculos-total')?.value) || 0;
+      const total     = parseInt(document.getElementById('veiculos-total')?.value) || 0;
       const entregues = parseInt(document.getElementById('veiculos-entregues')?.value) || 0;
       if (entregues > total) {
         document.getElementById('veiculos-entregues')?.classList.add('error');
@@ -115,6 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const comComentNao = ['5','6','7','8'];
     if (comComentNao.includes(cardId) && resposta === 'Nao') {
+      // Mantido aqui apenas como fallback; a validação principal é feita
+      // via data-require-comment-on-nao no HTML + form-engine.js
       const ta = card.querySelector('textarea');
       if (ta && !ta.value.trim()) {
         ta.classList.add('error');

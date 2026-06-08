@@ -13,21 +13,34 @@
     <img src="imagens/logo.png" alt="Logo da Unidas" class="logo">
 
     <form id="agendamento-form"
-      action="https://script.google.com/macros/s/AKfycbzVhTYFfEZl5X9XRRKaIt8jr_k6hU2B6W1wUNhFlChL0hsvX7tdRpUsglXWw-fhVC-K/exec"
-      method="POST"
-      enctype="multipart/form-data">
+      action="https://script.google.com/macros/s/AKfycby1CR9y7dHO8b60zy28_eWJdcDr6WG-y8oQY3ioh_f9gaFzLUnh1VNV6en4eWWihtvI/exec"
+      method="POST">
 
       <input type="hidden" id="tipo-oficina-hidden" name="entry.1234567">
+      <input type="hidden" id="presencial-telefone" name="presencial_telefone">
 
       <!-- Card 1: Analista -->
       <div class="card" id="card-1">
         <h2>Analista</h2>
         <div class="input-group">
           <label for="nome">Nome Completo</label>
-          <input type="text" id="nome" name="entry.277269067" required>
+          <input type="text" id="nome" autocomplete="name" name="entry.277269067" required>
         </div>
         <div class="navigation-buttons">
-          <button type="button" class="next-btn" data-card="100">Próximo</button>
+          <button type="button" class="next-btn" data-card="0b">Próximo</button>
+        </div>
+      </div>
+
+      <!-- Card 0b: Presencial ou Telefone -->
+      <div class="card" id="card-0b" style="display:none">
+        <h2>Tipo de Contato</h2>
+        <p>A visita foi realizada de forma presencial ou por telefone?</p>
+        <div class="sim-nao-container" style="margin-top:8px;">
+          <button type="button" id="btn-presencial">Presencial</button>
+          <button type="button" id="btn-telefone">Telefone</button>
+        </div>
+        <div class="navigation-buttons">
+          <button type="button" class="prev-btn" data-card="1">Anterior</button>
         </div>
       </div>
 
@@ -39,7 +52,7 @@
           <input type="text" id="CNPJ_Oficina" name="entry.2772692101" inputmode="numeric" pattern="\d*" required>
         </div>
         <div class="navigation-buttons">
-          <button type="button" class="prev-btn" data-card="1">Anterior</button>
+          <button type="button" class="prev-btn" data-card="0b">Anterior</button>
           <button type="button" class="next-btn" data-card="2">Próximo</button>
         </div>
       </div>
@@ -133,7 +146,7 @@
       </div>
 
       <!-- Card 5: Fachada -->
-      <div class="card" id="card-5" style="display:none">
+      <div class="card" id="card-5" style="display:none" data-require-comment-on-nao="true">
         <h3>Área 1 | Estrutura de Loja</h3>
         <h2>Estrutura da Oficina</h2>
         <div class="input-group">
@@ -152,7 +165,7 @@
       </div>
 
       <!-- Card 6: Guarda dos veículos -->
-      <div class="card" id="card-6" style="display:none">
+      <div class="card" id="card-6" style="display:none" data-require-comment-on-nao="true">
         <h3>Área 1 | Estrutura de Loja</h3>
         <h2>Guarda dos Veículos</h2>
         <div class="input-group">
@@ -171,7 +184,7 @@
       </div>
 
       <!-- Card 7: Equipe -->
-      <div class="card" id="card-7" style="display:none">
+      <div class="card" id="card-7" style="display:none" data-require-comment-on-nao="true">
         <h3>Área 1 | Estrutura de Loja</h3>
         <h2>Equipe</h2>
         <div class="input-group">
@@ -190,7 +203,7 @@
       </div>
 
       <!-- Card 8: Cabine de pintura -->
-      <div class="card" id="card-8" style="display:none">
+      <div class="card" id="card-8" style="display:none" data-require-comment-on-nao="true">
         <h3>Área 2 | Informações Sobre Oficina Externa</h3>
         <h2>Equipamentos</h2>
         <div class="input-group">
@@ -244,7 +257,7 @@
         <h2>Volume de Veículos</h2>
         <div class="input-group">
           <label for="veiculos-total">Total de veículos em manutenção no momento</label>
-          <input type="number" id="veiculos-total" name="entry.1586662502" placeholder="0" min="0" required>
+          <input type="number" inputmode="numeric" id="veiculos-total" name="entry.1586662502" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="9">Anterior</button>
@@ -258,7 +271,7 @@
         <h2>Pendentes de Orçamento</h2>
         <div class="input-group">
           <label for="veiculos-orcamento">Orçamento ainda não enviado</label>
-          <input type="number" id="veiculos-orcamento" name="entry.1519304362" placeholder="0" min="0" required>
+          <input type="number" inputmode="numeric" id="veiculos-orcamento" name="entry.1519304362" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="10">Anterior</button>
@@ -272,7 +285,7 @@
         <h2>Pendentes de Aprovação</h2>
         <div class="input-group">
           <label for="veiculos-pendentes">Orçamento já enviado, aguardando aprovação</label>
-          <input type="number" id="veiculos-pendentes" name="entry.1518304283" placeholder="0" min="0" required>
+          <input type="number" inputmode="numeric" id="veiculos-pendentes" name="entry.1518304283" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="11">Anterior</button>
@@ -286,7 +299,7 @@
         <h2>Em Serviço</h2>
         <div class="input-group">
           <label for="veiculos-aprovados">Orçamento aprovado, em execução</label>
-          <input type="number" id="veiculos-aprovados" name="entry.1495825427" placeholder="0" min="0" required>
+          <input type="number" inputmode="numeric" id="veiculos-aprovados" name="entry.1495825427" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="12">Anterior</button>
@@ -300,7 +313,7 @@
         <h2>Aguardando Peças</h2>
         <div class="input-group">
           <label for="veiculos-aguardando">Número de veículos aguardando peças</label>
-          <input type="number" id="veiculos-aguardando" name="entry.940201240" placeholder="0" min="0" required>
+          <input type="number" inputmode="numeric" id="veiculos-aguardando" name="entry.940201240" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="13">Anterior</button>
@@ -314,7 +327,7 @@
         <h2>Fora de Serviço (FS)</h2>
         <div class="input-group">
           <label for="veiculos-FS">Dentro da oficina, aguardando checking</label>
-          <input type="number" id="veiculos-FS" name="entry.940201145" placeholder="0" min="0" required>
+          <input type="number" inputmode="numeric" id="veiculos-FS" name="entry.940201145" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="14">Anterior</button>
@@ -328,7 +341,7 @@
         <h2>Entregas do Dia</h2>
         <div class="input-group">
           <label for="veiculos-entregues">Quantos serão entregues hoje?</label>
-          <input type="number" id="veiculos-entregues" name="entry.185208252" placeholder="0" min="0" required>
+          <input type="number" inputmode="numeric" id="veiculos-entregues" name="entry.185208252" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="15">Anterior</button>
@@ -347,7 +360,7 @@
             <button type="button" class="sim-nao-btn" data-value="Nao" data-next="18">Não</button>
           </div>
           <label for="necessidade-aumento-fornecedores">Número de fornecedores (obrigatório se "Sim")</label>
-          <input type="number" id="necessidade-aumento-fornecedores" name="entry.1986006638" placeholder="0" min="1">
+          <input type="number" inputmode="numeric" id="necessidade-aumento-fornecedores" name="entry.1986006638" placeholder="0" min="1">
         </div>
         <div class="navigation-buttons">
           <button type="button" class="prev-btn" data-card="16">Anterior</button>

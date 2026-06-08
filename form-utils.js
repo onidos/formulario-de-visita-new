@@ -2,6 +2,58 @@
  * form-utils.js — Utilitários compartilhados entre todos os formulários
  */
 
+// ── Storage com namespace (evita vazamento entre sessões/abas) ───────────────
+// Usa sessionStorage em vez de localStorage: dados são descartados ao fechar
+// a aba, eliminando o risco de um estado antigo "contaminar" uma nova sessão.
+
+const AppStorage = {
+  _key: (k) => `visita_oficina__${k}`,
+  set(k, v)  { try { sessionStorage.setItem(this._key(k), JSON.stringify(v)); } catch(_){} },
+  get(k)     { try { const r = sessionStorage.getItem(this._key(k)); return r ? JSON.parse(r) : null; } catch(_){ return null; } },
+  remove(k)  { try { sessionStorage.removeItem(this._key(k)); } catch(_){} },
+};
+
+// ── Validação e máscara de CNPJ ──────────────────────────────────────────────
+
+function validarCNPJ(cnpj) {
+  cnpj = cnpj.replace(/\D/g, '');
+  if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+  const calc = (str, n) => {
+    let s = 0, p = n;
+    for (let i = 0; i < n - 1; i++) { s += parseInt(str[i]) * p--; if (p < 2) p = 9; }
+    const r = s % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return calc(cnpj, 13) === parseInt(cnpj[12]) && calc(cnpj, 14) === parseInt(cnpj[13]);
+}
+
+function aplicarMascaraCNPJ(input) {
+  if (!input) return;
+  input.setAttribute('maxlength', '18');
+  input.setAttribute('inputmode', 'numeric');
+  input.setAttribute('placeholder', '00.000.000/0000-00');
+
+  input.addEventListener('input', () => {
+    let v = input.value.replace(/\D/g, '').slice(0, 14);
+    if (v.length > 12)     v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/, '$1.$2.$3/$4-$5');
+    else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4}).*/, '$1.$2.$3/$4');
+    else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
+    else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3}).*/, '$1.$2');
+    input.value = v;
+  });
+
+  input.addEventListener('blur', () => {
+    const digits = input.value.replace(/\D/g, '');
+    if (digits.length > 0 && !validarCNPJ(digits)) {
+      input.classList.add('error');
+      input.setCustomValidity('CNPJ inválido');
+    } else {
+      input.classList.remove('error');
+      input.setCustomValidity('');
+    }
+  });
+}
+
 // ── Geolocalização + Geocoding reverso ──────────────────────────────────────
 
 async function obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput, cidadeInput }) {
@@ -109,7 +161,7 @@ function validarCard(card) {
 
 /**
  * Envia via form.submit() nativo usando iframe oculto como target.
- * Lê a resposta JSON do GAS e passa o resultado para sucesso.html via localStorage.
+ * Lê a resposta JSON do GAS e passa o resultado para sucesso.html via sessionStorage.
  */
 function enviarFormulario(form, btn) {
   btn.classList.add('loading');
@@ -121,35 +173,25 @@ function enviarFormulario(form, btn) {
   iframe.style.display = 'none';
   document.body.appendChild(iframe);
 
-  // Timeout de segurança: se o GAS não responder em 20s, vai para sucesso com status desconhecido
+  // Timeout de segurança: se o GAS não responder em 20s
   const fallbackTimer = setTimeout(() => {
-    localStorage.setItem('submit_result', JSON.stringify({
-      planilha: 'desconhecido',
-      email:    'desconhecido',
-    }));
+    AppStorage.set('submit_result', { planilha: 'desconhecido', email: 'desconhecido' });
     window.location.href = 'sucesso.html';
   }, 20000);
 
-  // Quando o GAS responder, lê o JSON e redireciona
   iframe.addEventListener('load', () => {
     clearTimeout(fallbackTimer);
     try {
       const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
       const texto = iframeDoc.body ? iframeDoc.body.innerText.trim() : '';
       const json  = JSON.parse(texto);
-
-      localStorage.setItem('submit_result', JSON.stringify({
+      AppStorage.set('submit_result', {
         planilha: json.planilha || (json.status === 'ok' ? 'ok' : 'erro'),
         email:    json.email    || (json.status === 'ok' ? 'ok' : 'desconhecido'),
         erro:     json.erro     || json.message || '',
-      }));
+      });
     } catch (_) {
-      // Se não conseguir ler o iframe (CORS do GAS), assume sucesso
-      // pois o GAS roda em domínio diferente e pode bloquear a leitura
-      localStorage.setItem('submit_result', JSON.stringify({
-        planilha: 'ok',
-        email:    'desconhecido',
-      }));
+      AppStorage.set('submit_result', { planilha: 'ok', email: 'desconhecido' });
     }
     window.location.href = 'sucesso.html';
   });

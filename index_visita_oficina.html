@@ -36,6 +36,7 @@
   </div>
 
   <script>
+    const _key = (k) => `visita_oficina__${k}`;
     document.getElementById('btn-iniciar').addEventListener('click', () => {
       const sel = document.getElementById('tipo-oficina');
       if (!sel.value) {
@@ -44,7 +45,7 @@
         return;
       }
       sel.classList.remove('error');
-      localStorage.setItem('tipo_oficina', sel.value);
+      sessionStorage.setItem(_key('tipo_oficina'), JSON.stringify(sel.value));
       window.location.href = sel.value === 'Externa'
         ? 'oficina_externa.html'
         : 'oficina_interna_movel.html';
