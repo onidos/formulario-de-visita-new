@@ -85,6 +85,21 @@ document.addEventListener('DOMContentLoaded', () => {
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
+    // Card 10: se total = 0, pula direto para fornecedores (card 17)
+    if (cardId === '10') {
+      const total = parseInt(document.getElementById('veiculos-total')?.value) || 0;
+      if (total === 0) {
+        // Zera todos os campos intermediários para não enviar lixo
+        ['veiculos-orcamento','veiculos-pendentes','veiculos-aprovados',
+         'veiculos-aguardando','veiculos-FS','veiculos-entregues'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '0';
+        });
+        engine.showCard('17');
+        return false;
+      }
+    }
+
     if (cardId === '15') {
       const ids = ['veiculos-total','veiculos-orcamento','veiculos-pendentes',
                    'veiculos-aprovados','veiculos-aguardando','veiculos-FS'];
