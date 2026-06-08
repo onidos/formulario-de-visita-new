@@ -251,7 +251,32 @@
         </div>
       </div>
 
-      <!-- Card 10: Total veículos -->
+      <!-- Card 10b: Como deseja registrar os veículos? -->
+      <div class="card" id="card-10b" style="display:none">
+        <h3>Área 2 | Informações Sobre Oficina Externa</h3>
+        <h2>Registro de Veículos</h2>
+        <p>Como deseja registrar os veículos improdutivos?</p>
+
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+          <button type="button" id="btn-modo-importar"
+            style="display:flex;align-items:center;justify-content:center;gap:12px;padding:18px 24px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:var(--primary);color:#fff;font-weight:700;font-size:1rem;cursor:pointer;width:100%;">
+            <span style="font-size:1.3rem;">📂</span> Importar Placas do Portal
+          </button>
+          <button type="button" id="btn-modo-manual"
+            style="display:flex;align-items:center;justify-content:center;gap:12px;padding:18px 24px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:#fff;color:var(--primary);font-weight:700;font-size:1rem;cursor:pointer;width:100%;">
+            <span style="font-size:1.3rem;">✏️</span> Preenchimento Manual
+          </button>
+        </div>
+
+        <input type="file" id="input-import-sac-vol" accept=".xlsx,.xls" style="display:none">
+        <div id="import-sac-vol-status" style="display:none;margin-top:12px;padding:10px 14px;border-radius:var(--radius-sm);font-size:.88rem;"></div>
+
+        <div class="navigation-buttons" style="margin-top:20px;">
+          <button type="button" class="prev-btn" data-card="9">Anterior</button>
+        </div>
+      </div>
+
+      <!-- Card 10: Volume de Veículos (modo manual) -->
       <div class="card" id="card-10" style="display:none">
         <h3>Área 2 | Informações Sobre Oficina Externa</h3>
         <h2>Volume de Veículos</h2>
@@ -260,34 +285,8 @@
           <input type="number" inputmode="numeric" id="veiculos-total" name="entry.1586662502" placeholder="0" min="0" required>
         </div>
         <div class="navigation-buttons">
-          <button type="button" class="prev-btn" data-card="4b">Anterior</button>
-          <button type="button" class="next-btn" data-card="10b">Próximo</button>
-        </div>
-      </div>
-
-      <!-- Card 10b: Como deseja registrar os veículos? -->
-      <div class="card" id="card-10b" style="display:none">
-        <h3>Área 2 | Informações Sobre Oficina Externa</h3>
-        <h2>Registro de Veículos</h2>
-        <p>Como deseja registrar os veículos improdutivos?</p>
-
-        <div class="sim-nao-container" style="flex-direction:column;gap:12px;margin-top:16px;">
-          <button type="button" id="btn-modo-importar"
-            style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 24px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:var(--primary);color:#fff;font-weight:600;font-size:1rem;cursor:pointer;width:100%;">
-            📂 Importar Placas do Portal
-          </button>
-          <button type="button" id="btn-modo-manual"
-            style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 24px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:#fff;color:var(--primary);font-weight:600;font-size:1rem;cursor:pointer;width:100%;">
-            ✏️ Preenchimento Manual
-          </button>
-        </div>
-
-        <!-- Input oculto para o arquivo -->
-        <input type="file" id="input-import-sac-vol" accept=".xlsx,.xls" style="display:none">
-        <span id="import-sac-vol-status" style="display:none;margin-top:10px;font-size:.88rem;"></span>
-
-        <div class="navigation-buttons" style="margin-top:20px;">
-          <button type="button" class="prev-btn" data-card="10">Anterior</button>
+          <button type="button" class="prev-btn" data-card="10b">Anterior</button>
+          <button type="button" class="next-btn" data-card="11">Próximo</button>
         </div>
       </div>
 

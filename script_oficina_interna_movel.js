@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.stopImmediatePropagation();
       const resposta = btn.dataset.value;
-      engine.showCard(isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '9-alt'));
+      engine.showCard(isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '9b-alt'));
     }, true);
   });
 
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-modo-manual')?.addEventListener('click', () => {
     AppStorage.remove('sac_dados');
     atualizarPrevFornecedores();
-    engine.showCard('10-alt');
+    engine.showCard('9-alt');
   });
 
   inicializarImportSACVolume({
@@ -73,9 +73,17 @@ document.addEventListener('DOMContentLoaded', () => {
       pecas:     'veiculos-pecas',
       orcamento: 'veiculos-orcamento',
     },
-    onImportado: () => {
+    onImportado: (dados) => {
       atualizarPrevFornecedores();
-      engine.showCard('16-alt');
+      const statusEl = document.getElementById('import-sac-vol-status');
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = '#f0faf4';
+        statusEl.style.border = '1px solid #a3d9b1';
+        statusEl.style.color = '#1a5c30';
+        statusEl.textContent = `✅ ${dados.total} veículos importados. Avançando...`;
+      }
+      setTimeout(() => engine.showCard('16-alt'), 1200);
     },
   });
 
@@ -84,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('prev-btn-16-alt');
     if (!btn) return;
     const sacImportado = AppStorage.get('sac_dados');
-    btn.dataset.card = sacImportado ? '9-alt' : '15-alt';
+    btn.dataset.card = sacImportado ? '9b-alt' : '15-alt';
   }
 
   atualizarPrevFornecedores();

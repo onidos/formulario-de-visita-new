@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.stopImmediatePropagation();
       const resposta = btn.dataset.value;
-      engine.showCard(isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '10'));
+      engine.showCard(isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '10b'));
     }, true);
   });
 
@@ -57,14 +57,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-modo-manual')?.addEventListener('click', () => {
-    // Limpa qualquer SAC anterior e segue fluxo manual
     AppStorage.remove('sac_dados');
     atualizarPrevFornecedores();
-    engine.showCard('11');
+    engine.showCard('10');
   });
 
   inicializarImportSACVolume({
-    btnId:    'btn-import-sac-vol',   // não usado (disparado via btn-modo-importar)
+    btnId:    'btn-import-sac-vol',
     inputId:  'input-import-sac-vol',
     statusId: 'import-sac-vol-status',
     idMap: {
@@ -75,9 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
       pecas:     'veiculos-aguardando',
       fs:        'veiculos-FS',
     },
-    onImportado: () => {
+    onImportado: (dados) => {
       atualizarPrevFornecedores();
-      engine.showCard('17');
+      // Mostra feedback no card-10b antes de navegar
+      const statusEl = document.getElementById('import-sac-vol-status');
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = '#f0faf4';
+        statusEl.style.border = '1px solid #a3d9b1';
+        statusEl.style.color = '#1a5c30';
+        statusEl.textContent = `✅ ${dados.total} veículos importados. Avançando...`;
+      }
+      setTimeout(() => engine.showCard('17'), 1200);
     },
   });
 
@@ -86,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('prev-btn-17');
     if (!btn) return;
     const sacImportado = AppStorage.get('sac_dados');
-    btn.dataset.card = sacImportado ? '10' : '16';
+    btn.dataset.card = sacImportado ? '10b' : '16';
   }
 
   // Chama ao iniciar (caso a página recarregue com dados em sessão)
