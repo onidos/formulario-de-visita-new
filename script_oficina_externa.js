@@ -104,8 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 10: se total = 0, pula direto para fornecedores
-    // Se SAC foi importado, pula os cards de detalhe (11-16) e vai direto para 17
+    // Card 10: se total = 0 pula para fornecedores
+    // Se SAC foi importado pula cards de detalhe e vai direto para fornecedores
+    // Se manual (sem SAC), segue fluxo normal (cards 11→15→16→17)
     if (cardId === '10') {
       const total = parseInt(document.getElementById('veiculos-total')?.value) || 0;
       if (total === 0) {
@@ -119,13 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const sacImportado = AppStorage.get('sac_dados');
       if (sacImportado) {
-        // SAC já preencheu tudo, pula cards de detalhe e entrega, vai para fornecedores
-        // Entregues = 0 por padrão (analista não tem como saber pelo SAC)
         const elEnt = document.getElementById('veiculos-entregues');
         if (elEnt && !elEnt.value) elEnt.value = '0';
         engine.showCard('17');
         return false;
       }
+      // Sem SAC: segue fluxo normal → card 11
     }
 
     if (cardId === '15') {

@@ -101,7 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 9-alt: se total = 0 ou SAC importado, pula para fornecedores
+    // Card 9-alt: se total = 0 pula para fornecedores
+    // Se SAC importado pula cards de detalhe e vai para fornecedores
+    // Se manual (sem SAC), segue fluxo normal (cards 10-alt→...→16-alt)
     if (cardId === '9-alt') {
       const total = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
       if (total === 0) {
@@ -120,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         engine.showCard('16-alt');
         return false;
       }
+      // Sem SAC: segue fluxo normal → card 10-alt
     }
 
     if (cardId === '15-alt') {
