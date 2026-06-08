@@ -11,13 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   engine.init();
 
-  // Renderiza a tabela de improdutivos sempre que o card-18 for exibido
-  const _showCardOriginalExt = engine.showCard.bind(engine);
-  engine.showCard = function(cardId) {
-    _showCardOriginalExt(cardId);
-    if (String(cardId) === '18') renderizarImprodutivos();
-  };
-
   preencherDataHora(
     document.getElementById('data-visita'),
     document.getElementById('horario-visita')
@@ -91,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardId = card.id.replace('card-', '');
 
     // Card 10: se total = 0, pula direto para fornecedores
+    // Se SAC foi importado, pula os cards de detalhe (11-16) e vai direto para 17
     if (cardId === '10') {
       const total = parseInt(document.getElementById('veiculos-total')?.value) || 0;
       if (total === 0) {
@@ -99,6 +93,15 @@ document.addEventListener('DOMContentLoaded', () => {
           const el = document.getElementById(id);
           if (el) el.value = '0';
         });
+        engine.showCard('17');
+        return false;
+      }
+      const sacImportado = AppStorage.get('sac_dados');
+      if (sacImportado) {
+        // SAC já preencheu tudo, pula cards de detalhe e entrega, vai para fornecedores
+        // Entregues = 0 por padrão (analista não tem como saber pelo SAC)
+        const elEnt = document.getElementById('veiculos-entregues');
+        if (elEnt && !elEnt.value) elEnt.value = '0';
         engine.showCard('17');
         return false;
       }
@@ -153,6 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (cardId === '9' && isProspeccao()) { engine.showCard('9-fim'); return false; }
+
+    // Ao sair do card de fornecedores (17), renderiza a tabela antes de mostrar card 18
+    if (cardId === '17') {
+      setTimeout(() => renderizarImprodutivos(), 50);
+    }
   }
 
   // ── Tabela de improdutivos (card 18) ──────────────────────
@@ -162,13 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!container) return;
 
     if (!dados || !dados.veiculos || dados.veiculos.length === 0) {
-      container.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem;">Nenhum arquivo SAC importado. Preencha as placas manualmente nos campos abaixo.</p>';
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem;padding:12px 0;">Nenhum arquivo SAC importado. Sem placas para exibir.</p>';
       return;
     }
 
     const servicoObrig = dados.total <= 10;
 
-    // Atualiza aviso de obrigatoriedade
     const avisoServico = document.getElementById('aviso-servico-obrig');
     if (avisoServico) {
       avisoServico.textContent = servicoObrig
