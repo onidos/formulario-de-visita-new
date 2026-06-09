@@ -52,7 +52,7 @@ body {
 /* ── Container principal ────────────────────────────────── */
 .container {
   width: 100%;
-  max-width: 580px;
+  max-width: 780px;
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
