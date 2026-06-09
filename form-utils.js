@@ -446,64 +446,74 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
     const fim    = Math.min(inicio + POR_PAGINA, estado.length);
     const pagina = estado.slice(inicio, fim);
 
+    const estiloTh = 'padding:8px 10px;border:1px solid #dde3ee;background:#0051AA;color:#fff;font-size:.78rem;text-align:left;white-space:nowrap;';
+    const estiloTd = 'padding:7px 8px;border:1px solid #e8edf5;vertical-align:middle;';
+
     container.innerHTML = `
-      <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:12px;">
+      <div style="font-size:.82rem;color:#666;margin-bottom:10px;">
         Mostrando ${inicio + 1}–${fim} de ${estado.length} veículos
         ${estado.length > POR_PAGINA ? ` — Página ${paginaAtual + 1} de ${totalPaginas}` : ''}
       </div>
-
-      ${pagina.map((v, i) => {
-        const idx = inicio + i;
-        return `
-        <div style="border:1px solid var(--border,#e0e0e0);border-radius:10px;padding:14px;margin-bottom:12px;background:#fff;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <span style="background:#0051AA;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0;">${idx + 1}</span>
-            <span style="font-weight:700;font-size:1rem;letter-spacing:.05em;">${v.placa}</span>
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-            <div>
-              <label style="display:block;font-size:.75rem;color:var(--text-muted,#666);margin-bottom:3px;font-weight:600;">Status</label>
-              <select data-idx="${idx}" data-field="status" style="width:100%;font-size:.85rem;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
-                ${['Fora de Serviço','Pend. Orçamento','Pend. Aprovação','Erro Material','Pend. Peça','Em Serviço']
-                  .map(s => `<option value="${s}" ${v.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-              </select>
-            </div>
-            <div>
-              <label style="display:block;font-size:.75rem;color:var(--text-muted,#666);margin-bottom:3px;font-weight:600;">Prev. Entrega</label>
-              <input type="date" data-idx="${idx}" data-field="entrega"
-                value="${v.entrega}" style="width:100%;font-size:.85rem;padding:6px 8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
-            </div>
-          </div>
-
-          <div style="margin-bottom:10px;">
-            <label style="display:block;font-size:.75rem;color:var(--text-muted,#666);margin-bottom:3px;font-weight:600;">Tipo de Serviço <span style="color:red">*</span></label>
-            <select data-idx="${idx}" data-field="servico" style="width:100%;font-size:.85rem;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
-              <option value="">— Selecione —</option>
-              ${['Preventiva','Corretiva','Sinistro']
-                .map(s => `<option value="${s}" ${v.servico === s ? 'selected' : ''}>${s}</option>`).join('')}
-            </select>
-          </div>
-
-          <div>
-            <label style="display:block;font-size:.75rem;color:var(--text-muted,#666);margin-bottom:3px;font-weight:600;">Comentário <span style="color:red">*</span></label>
-            <input type="text" data-idx="${idx}" data-field="comentario"
-              value="${(v.comentario||'').replace(/"/g,'&quot;')}"
-              placeholder="Mín. 5 caracteres"
-              style="width:100%;font-size:.85rem;padding:6px 8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
-          </div>
-        </div>`;
-      }).join('')}
-
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;border:1px solid #e0e0e0;">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:560px;">
+          <thead>
+            <tr>
+              <th style="${estiloTh}width:28px;">#</th>
+              <th style="${estiloTh}white-space:nowrap;">Placa</th>
+              <th style="${estiloTh}">Status</th>
+              <th style="${estiloTh}">Entrega</th>
+              <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
+              <th style="${estiloTh}min-width:140px;">Comentário <span style="color:#ffd">*</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pagina.map((v, i) => {
+              const idx = inicio + i;
+              const bg = i % 2 === 0 ? '#fff' : '#f8faff';
+              return `
+              <tr style="background:${bg};">
+                <td style="${estiloTd}color:#999;text-align:center;">${idx + 1}</td>
+                <td style="${estiloTd}font-weight:700;white-space:nowrap;">${v.placa}</td>
+                <td style="${estiloTd}">
+                  <select data-idx="${idx}" data-field="status"
+                    style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:110px;background:#fff;">
+                    ${['Fora de Serviço','Pend. Orçamento','Pend. Aprovação','Erro Material','Pend. Peça','Em Serviço']
+                      .map(s => `<option value="${s}" ${v.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                  </select>
+                </td>
+                <td style="${estiloTd}">
+                  <input type="date" data-idx="${idx}" data-field="entrega"
+                    value="${v.entrega}"
+                    style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:110px;box-sizing:border-box;">
+                </td>
+                <td style="${estiloTd}">
+                  <select data-idx="${idx}" data-field="servico"
+                    style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:90px;background:#fff;">
+                    <option value="">—</option>
+                    ${['Preventiva','Corretiva','Sinistro']
+                      .map(s => `<option value="${s}" ${v.servico === s ? 'selected' : ''}>${s}</option>`).join('')}
+                  </select>
+                </td>
+                <td style="${estiloTd}">
+                  <input type="text" data-idx="${idx}" data-field="comentario"
+                    value="${(v.comentario||'').replace(/"/g,'&quot;')}"
+                    placeholder="Mín. 5 car."
+                    style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:140px;box-sizing:border-box;">
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
       ${totalPaginas > 1 ? `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
         <button type="button" id="sac-prev-btn" ${paginaAtual === 0 ? 'disabled' : ''}
-          style="padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border,#ccc);background:#fff;cursor:pointer;">
+          style="padding:8px 18px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.9rem;">
           ← Anterior
         </button>
-        <span style="font-size:.85rem;color:var(--text-muted);">${paginaAtual + 1} / ${totalPaginas}</span>
+        <span style="font-size:.85rem;color:#666;">${paginaAtual + 1} / ${totalPaginas}</span>
         <button type="button" id="sac-next-btn" ${paginaAtual === totalPaginas - 1 ? 'disabled' : ''}
-          style="padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border,#ccc);background:#fff;cursor:pointer;">
+          style="padding:8px 18px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.9rem;">
           Próxima →
         </button>
       </div>` : ''}
