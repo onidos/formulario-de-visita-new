@@ -67,10 +67,9 @@ function validarComentario(texto) {
     'asdf','sdfg','dfgh','fghj','ghjk','hjkl',
     'zxcv','xcvb','cvbn','vbnm',
     'qwerty','asdfg','zxcvb','qwertyuiop','asdfghjkl',
-    'abcd','bcde','cdef','defg','efgh','fghi',
     '1234','2345','3456','4567','5678','6789',
     'aaaa','bbbb','cccc','dddd','eeee','ffff',
-    'teste','test','aaaa','asas','lala',
+    'asas','lala',
   ];
   const tLower = t.toLowerCase();
   if (sequencias.some(s => tLower.includes(s))) return false;
@@ -95,22 +94,13 @@ const AppStorage = {
 function validarCNPJ(cnpj) {
   cnpj = cnpj.replace(/\D/g, '');
   if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
-
-  // Pesos conforme algoritmo da Receita Federal
-  const p1 = [5,4,3,2,9,8,7,6,5,4,3,2];
-  const p2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
-
-  let soma = 0;
-  for (let i = 0; i < 12; i++) soma += parseInt(cnpj[i]) * p1[i];
-  let r = soma % 11;
-  const d1 = r < 2 ? 0 : 11 - r;
-
-  soma = 0;
-  for (let i = 0; i < 13; i++) soma += parseInt(cnpj[i]) * p2[i];
-  r = soma % 11;
-  const d2 = r < 2 ? 0 : 11 - r;
-
-  return d1 === parseInt(cnpj[12]) && d2 === parseInt(cnpj[13]);
+  const calc = (str, n) => {
+    let s = 0, p = n;
+    for (let i = 0; i < n - 1; i++) { s += parseInt(str[i]) * p--; if (p < 2) p = 9; }
+    const r = s % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return calc(cnpj, 13) === parseInt(cnpj[12]) && calc(cnpj, 14) === parseInt(cnpj[13]);
 }
 
 function aplicarMascaraCNPJ(input) {
@@ -118,8 +108,6 @@ function aplicarMascaraCNPJ(input) {
   input.setAttribute('maxlength', '18');
   input.setAttribute('inputmode', 'numeric');
   input.setAttribute('placeholder', '00.000.000/0000-00');
-  input.dataset.cnpjInput = 'true'; // marca para validarCard identificar
-
   input.addEventListener('input', () => {
     let v = input.value.replace(/\D/g, '').slice(0, 14);
     if (v.length > 12)     v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/, '$1.$2.$3/$4-$5');
@@ -127,15 +115,15 @@ function aplicarMascaraCNPJ(input) {
     else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
     else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3}).*/, '$1.$2');
     input.value = v;
-    input.classList.remove('error'); // limpa erro enquanto digita
   });
-
   input.addEventListener('blur', () => {
     const digits = input.value.replace(/\D/g, '');
     if (digits.length > 0 && !validarCNPJ(digits)) {
       input.classList.add('error');
+      input.setCustomValidity('CNPJ inválido');
     } else {
       input.classList.remove('error');
+      input.setCustomValidity('');
     }
   });
 }
@@ -214,24 +202,13 @@ function preencherDataHora(dataInput, horarioInput) {
 function validarCard(card) {
   let valido = true;
   card.querySelectorAll('[required]').forEach(input => {
+    // Ignora campos desabilitados ou dentro de contêineres ocultos
     if (input.disabled) return;
     if (input.closest('[style*="display:none"], [style*="display: none"]')) return;
 
-    let ok = input.tagName === 'SELECT'
+    const ok = input.tagName === 'SELECT'
       ? Array.from(input.options).some(o => o.selected && o.value !== '')
       : input.value.trim() !== '';
-
-    // Validação de comprimento mínimo
-    if (ok && input.dataset.minlength) {
-      ok = input.value.trim().length >= parseInt(input.dataset.minlength);
-    }
-
-    // Validação extra para campos CNPJ
-    if (ok && input.dataset.cnpjInput === 'true') {
-      const digits = input.value.replace(/\D/g, '');
-      ok = digits.length === 14 && validarCNPJ(digits);
-    }
-
     input.classList.toggle('error', !ok);
     if (!ok) valido = false;
   });
@@ -451,59 +428,52 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
     const fim    = Math.min(inicio + POR_PAGINA, estado.length);
     const pagina = estado.slice(inicio, fim);
 
-    const estiloTh = 'padding:8px 10px;border:1px solid #dde3ee;background:#0051AA;color:#fff;font-size:.78rem;text-align:left;white-space:nowrap;';
-    const estiloTd = 'padding:7px 8px;border:1px solid #e8edf5;vertical-align:middle;';
-
     container.innerHTML = `
-      <div style="font-size:.82rem;color:#666;margin-bottom:10px;">
+      <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:8px;">
         Mostrando ${inicio + 1}–${fim} de ${estado.length} veículos
         ${estado.length > POR_PAGINA ? ` — Página ${paginaAtual + 1} de ${totalPaginas}` : ''}
       </div>
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;border:1px solid #e0e0e0;">
-        <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:560px;">
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
           <thead>
-            <tr>
-              <th style="${estiloTh}width:28px;">#</th>
-              <th style="${estiloTh}white-space:nowrap;">Placa</th>
-              <th style="${estiloTh}">Status</th>
-              <th style="${estiloTh}">Entrega</th>
-              <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
-              <th style="${estiloTh}min-width:140px;">Comentário <span style="color:#ffd">*</span></th>
+            <tr style="background:var(--surface-2,#f5f5f5);text-align:left;">
+              <th style="padding:8px 6px;">#</th>
+              <th style="padding:8px 6px;">Placa</th>
+              <th style="padding:8px 6px;">Status</th>
+              <th style="padding:8px 6px;">Prev. Entrega</th>
+              <th style="padding:8px 6px;">Tipo Serviço <span style="color:red">*</span></th>
+              <th style="padding:8px 6px;">Comentário <span style="color:red">*</span></th>
             </tr>
           </thead>
           <tbody>
             ${pagina.map((v, i) => {
               const idx = inicio + i;
-              const bg = i % 2 === 0 ? '#fff' : '#f8faff';
               return `
-              <tr style="background:${bg};">
-                <td style="${estiloTd}color:#999;text-align:center;">${idx + 1}</td>
-                <td style="${estiloTd}font-weight:700;white-space:nowrap;">${v.placa}</td>
-                <td style="${estiloTd}">
-                  <select data-idx="${idx}" data-field="status"
-                    style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:110px;background:#fff;">
+              <tr style="border-bottom:1px solid var(--border,#e0e0e0);">
+                <td style="padding:7px 6px;color:var(--text-muted);">${idx + 1}</td>
+                <td style="padding:7px 6px;font-weight:600;">${v.placa}</td>
+                <td style="padding:7px 6px;">
+                  <select data-idx="${idx}" data-field="status" style="width:100%;font-size:.82rem;padding:4px;">
                     ${['Fora de Serviço','Pend. Orçamento','Pend. Aprovação','Erro Material','Pend. Peça','Em Serviço']
                       .map(s => `<option value="${s}" ${v.status === s ? 'selected' : ''}>${s}</option>`).join('')}
                   </select>
                 </td>
-                <td style="${estiloTd}">
+                <td style="padding:7px 6px;">
                   <input type="date" data-idx="${idx}" data-field="entrega"
-                    value="${v.entrega}"
-                    style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:110px;box-sizing:border-box;">
+                    value="${v.entrega}" style="width:100%;font-size:.82rem;padding:4px;">
                 </td>
-                <td style="${estiloTd}">
-                  <select data-idx="${idx}" data-field="servico"
-                    style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:90px;background:#fff;">
+                <td style="padding:7px 6px;">
+                  <select data-idx="${idx}" data-field="servico" style="width:100%;font-size:.82rem;padding:4px;">
                     <option value="">—</option>
                     ${['Preventiva','Corretiva','Sinistro']
                       .map(s => `<option value="${s}" ${v.servico === s ? 'selected' : ''}>${s}</option>`).join('')}
                   </select>
                 </td>
-                <td style="${estiloTd}">
+                <td style="padding:7px 6px;">
                   <input type="text" data-idx="${idx}" data-field="comentario"
                     value="${(v.comentario||'').replace(/"/g,'&quot;')}"
-                    placeholder="Mín. 5 car."
-                    style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:140px;box-sizing:border-box;">
+                    placeholder="Mín. 5 caracteres"
+                    style="width:100%;font-size:.82rem;padding:4px;min-width:140px;">
                 </td>
               </tr>`;
             }).join('')}
@@ -513,12 +483,12 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
       ${totalPaginas > 1 ? `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
         <button type="button" id="sac-prev-btn" ${paginaAtual === 0 ? 'disabled' : ''}
-          style="padding:8px 18px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.9rem;">
+          style="padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border,#ccc);background:#fff;cursor:pointer;">
           ← Anterior
         </button>
-        <span style="font-size:.85rem;color:#666;">${paginaAtual + 1} / ${totalPaginas}</span>
+        <span style="font-size:.85rem;color:var(--text-muted);">${paginaAtual + 1} / ${totalPaginas}</span>
         <button type="button" id="sac-next-btn" ${paginaAtual === totalPaginas - 1 ? 'disabled' : ''}
-          style="padding:8px 18px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.9rem;">
+          style="padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border,#ccc);background:#fff;cursor:pointer;">
           Próxima →
         </button>
       </div>` : ''}
@@ -571,9 +541,9 @@ function inicializarImportSACVolume({ btnId, inputId, statusId, idMap, onImporta
   const btn    = document.getElementById(btnId);
   const input  = document.getElementById(inputId);
   const status = document.getElementById(statusId);
-  if (!input) return; // btn é opcional agora
+  if (!btn || !input) return;
 
-  if (btn) btn.addEventListener('click', () => input.click());
+  btn.addEventListener('click', () => input.click());
 
   input.addEventListener('change', () => {
     const file = input.files[0];
@@ -585,7 +555,7 @@ function inicializarImportSACVolume({ btnId, inputId, statusId, idMap, onImporta
       onSuccess: (dados) => {
         preencherContagemSAC(dados.contagem, idMap);
         mostrarStatus(status,
-          `✅ ${dados.total} veículos importados.`,
+          `✅ ${dados.total} veículos importados. Campos preenchidos automaticamente.`,
           'ok'
         );
         if (onImportado) onImportado(dados);
