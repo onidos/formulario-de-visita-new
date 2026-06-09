@@ -221,6 +221,11 @@ function validarCard(card) {
       ? Array.from(input.options).some(o => o.selected && o.value !== '')
       : input.value.trim() !== '';
 
+    // Validação de comprimento mínimo
+    if (ok && input.dataset.minlength) {
+      ok = input.value.trim().length >= parseInt(input.dataset.minlength);
+    }
+
     // Validação extra para campos CNPJ
     if (ok && input.dataset.cnpjInput === 'true') {
       const digits = input.value.replace(/\D/g, '');
