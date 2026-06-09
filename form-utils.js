@@ -1,5 +1,5 @@
 /**
- * form-utils.js — Utilitários compartilhados entre todos os  formulários
+ * form-utils.js — Utilitários compartilhados entre todos os formulários
  */
 
 // ── Restrição de horário ─────────────────────────────────────────────────────
@@ -447,59 +447,56 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
     const pagina = estado.slice(inicio, fim);
 
     container.innerHTML = `
-      <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:8px;">
+      <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:12px;">
         Mostrando ${inicio + 1}–${fim} de ${estado.length} veículos
         ${estado.length > POR_PAGINA ? ` — Página ${paginaAtual + 1} de ${totalPaginas}` : ''}
       </div>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
-          <thead>
-            <tr style="background:var(--surface-2,#f5f5f5);text-align:left;">
-              <th style="padding:8px 6px;">#</th>
-              <th style="padding:8px 6px;">Placa</th>
-              <th style="padding:8px 6px;">Status</th>
-              <th style="padding:8px 6px;">Prev. Entrega</th>
-              <th style="padding:8px 6px;">Tipo Serviço <span style="color:red">*</span></th>
-              <th style="padding:8px 6px;">Comentário <span style="color:red">*</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            ${pagina.map((v, i) => {
-              const idx = inicio + i;
-              return `
-              <tr style="border-bottom:1px solid var(--border,#e0e0e0);">
-                <td style="padding:7px 6px;color:var(--text-muted);">${idx + 1}</td>
-                <td style="padding:7px 6px;font-weight:600;">${v.placa}</td>
-                <td style="padding:7px 6px;">
-                  <select data-idx="${idx}" data-field="status" style="width:100%;font-size:.82rem;padding:4px;">
-                    ${['Fora de Serviço','Pend. Orçamento','Pend. Aprovação','Erro Material','Pend. Peça','Em Serviço']
-                      .map(s => `<option value="${s}" ${v.status === s ? 'selected' : ''}>${s}</option>`).join('')}
-                  </select>
-                </td>
-                <td style="padding:7px 6px;">
-                  <input type="date" data-idx="${idx}" data-field="entrega"
-                    value="${v.entrega}" style="width:100%;font-size:.82rem;padding:4px;">
-                </td>
-                <td style="padding:7px 6px;">
-                  <select data-idx="${idx}" data-field="servico" style="width:100%;font-size:.82rem;padding:4px;">
-                    <option value="">—</option>
-                    ${['Preventiva','Corretiva','Sinistro']
-                      .map(s => `<option value="${s}" ${v.servico === s ? 'selected' : ''}>${s}</option>`).join('')}
-                  </select>
-                </td>
-                <td style="padding:7px 6px;">
-                  <input type="text" data-idx="${idx}" data-field="comentario"
-                    value="${(v.comentario||'').replace(/"/g,'&quot;')}"
-                    placeholder="Mín. 5 caracteres"
-                    style="width:100%;font-size:.82rem;padding:4px;min-width:140px;">
-                </td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
+
+      ${pagina.map((v, i) => {
+        const idx = inicio + i;
+        return `
+        <div style="border:1px solid var(--border,#e0e0e0);border-radius:10px;padding:14px;margin-bottom:12px;background:#fff;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="background:#0051AA;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0;">${idx + 1}</span>
+            <span style="font-weight:700;font-size:1rem;letter-spacing:.05em;">${v.placa}</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <label style="display:block;font-size:.75rem;color:var(--text-muted,#666);margin-bottom:3px;font-weight:600;">Status</label>
+              <select data-idx="${idx}" data-field="status" style="width:100%;font-size:.85rem;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
+                ${['Fora de Serviço','Pend. Orçamento','Pend. Aprovação','Erro Material','Pend. Peça','Em Serviço']
+                  .map(s => `<option value="${s}" ${v.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:.75rem;color:var(--text-muted,#666);margin-bottom:3px;font-weight:600;">Prev. Entrega</label>
+              <input type="date" data-idx="${idx}" data-field="entrega"
+                value="${v.entrega}" style="width:100%;font-size:.85rem;padding:6px 8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+            </div>
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <label style="display:block;font-size:.75rem;color:var(--text-muted,#666);margin-bottom:3px;font-weight:600;">Tipo de Serviço <span style="color:red">*</span></label>
+            <select data-idx="${idx}" data-field="servico" style="width:100%;font-size:.85rem;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
+              <option value="">— Selecione —</option>
+              ${['Preventiva','Corretiva','Sinistro']
+                .map(s => `<option value="${s}" ${v.servico === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block;font-size:.75rem;color:var(--text-muted,#666);margin-bottom:3px;font-weight:600;">Comentário <span style="color:red">*</span></label>
+            <input type="text" data-idx="${idx}" data-field="comentario"
+              value="${(v.comentario||'').replace(/"/g,'&quot;')}"
+              placeholder="Mín. 5 caracteres"
+              style="width:100%;font-size:.85rem;padding:6px 8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;">
+          </div>
+        </div>`;
+      }).join('')}
+
       ${totalPaginas > 1 ? `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
         <button type="button" id="sac-prev-btn" ${paginaAtual === 0 ? 'disabled' : ''}
           style="padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border,#ccc);background:#fff;cursor:pointer;">
           ← Anterior
