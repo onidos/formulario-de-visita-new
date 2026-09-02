@@ -485,7 +485,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
         ${estado.length > POR_PAGINA ? ` — Página ${paginaAtual + 1} de ${totalPaginas}` : ''}
       </div>
       <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;border:1px solid #e0e0e0;">
-        <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:560px;">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:680px;">
           <thead>
             <tr>
               <th style="${estiloTh}width:28px;">#</th>
@@ -493,7 +493,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
               <th style="${estiloTh}">Status</th>
               <th style="${estiloTh}">Entrega</th>
               <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
-              <th style="${estiloTh}min-width:170px;">Ação <span style="color:#ffd">*</span></th>
+              <th style="${estiloTh}min-width:210px;">Ação <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}width:64px;text-align:center;">Foto</th>
             </tr>
           </thead>
@@ -527,7 +527,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
                 </td>
                 <td style="${estiloTd}">
                   <select data-idx="${idx}" data-field="acao"
-                    style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:170px;box-sizing:border-box;background:#fff;">
+                    style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:200px;box-sizing:border-box;background:#fff;">
                     <option value="">— Selecione —</option>
                     ${ACOES_VEICULO.map(a => `<option value="${a}" ${v.acao === a ? 'selected' : ''}>${a}</option>`).join('')}
                   </select>
