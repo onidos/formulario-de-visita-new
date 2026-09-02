@@ -24,7 +24,7 @@
         <h2>Analista</h2>
         <div class="input-group">
           <label for="nome">Nome Completo</label>
-          <input type="text" id="nome" autocomplete="name" name="entry.736701652" required data-minlength="5">
+          <input type="text" id="nome" autocomplete="name" name="entry.736701652" required data-minlength="5" data-onlyletters="true">
         </div>
         <div class="navigation-buttons">
           <button type="button" class="next-btn" data-card="0b">Próximo</button>
@@ -415,6 +415,17 @@
                     </select>
                   </div>
                 </div>
+                <div class="input-group">
+                  <label>Foto do Veículo</label>
+                  <button type="button" class="foto-manual-btn" data-target="1" style="padding:9px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.85rem;">📷 Tirar/Selecionar Foto</button>
+                  <div class="foto-preview" id="foto-preview-1" style="display:none;margin-top:8px;align-items:center;gap:10px;">
+                    <img id="foto-preview-img-1" style="max-width:110px;max-height:110px;border-radius:8px;object-fit:cover;">
+                    <button type="button" class="foto-remover-btn" data-target="1" style="border:none;background:none;color:#c0392b;cursor:pointer;font-size:.8rem;">Remover</button>
+                  </div>
+                  <input type="hidden" name="foto1">
+                  <input type="hidden" name="foto1_mime">
+                  <input type="hidden" name="foto1_nome">
+                </div>
               </div>
             </div>
 
@@ -451,6 +462,17 @@
                     </select>
                   </div>
                 </div>
+                <div class="input-group">
+                  <label>Foto do Veículo</label>
+                  <button type="button" class="foto-manual-btn" data-target="2" style="padding:9px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.85rem;">📷 Tirar/Selecionar Foto</button>
+                  <div class="foto-preview" id="foto-preview-2" style="display:none;margin-top:8px;align-items:center;gap:10px;">
+                    <img id="foto-preview-img-2" style="max-width:110px;max-height:110px;border-radius:8px;object-fit:cover;">
+                    <button type="button" class="foto-remover-btn" data-target="2" style="border:none;background:none;color:#c0392b;cursor:pointer;font-size:.8rem;">Remover</button>
+                  </div>
+                  <input type="hidden" name="foto2">
+                  <input type="hidden" name="foto2_mime">
+                  <input type="hidden" name="foto2_nome">
+                </div>
               </div>
             </div>
 
@@ -486,6 +508,17 @@
                       <option value="Em Serviço">Em Serviço</option>
                     </select>
                   </div>
+                </div>
+                <div class="input-group">
+                  <label>Foto do Veículo</label>
+                  <button type="button" class="foto-manual-btn" data-target="3" style="padding:9px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.85rem;">📷 Tirar/Selecionar Foto</button>
+                  <div class="foto-preview" id="foto-preview-3" style="display:none;margin-top:8px;align-items:center;gap:10px;">
+                    <img id="foto-preview-img-3" style="max-width:110px;max-height:110px;border-radius:8px;object-fit:cover;">
+                    <button type="button" class="foto-remover-btn" data-target="3" style="border:none;background:none;color:#c0392b;cursor:pointer;font-size:.8rem;">Remover</button>
+                  </div>
+                  <input type="hidden" name="foto3">
+                  <input type="hidden" name="foto3_mime">
+                  <input type="hidden" name="foto3_nome">
                 </div>
               </div>
             </div>

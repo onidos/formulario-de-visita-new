@@ -202,6 +202,32 @@ document.addEventListener('DOMContentLoaded', () => {
     cb.addEventListener('change', () => toggleVeiculo(cb.dataset.target, cb.checked));
   });
 
+  // ── Fotos dos veículos manuais ────────────────────────────
+  document.querySelectorAll('.foto-manual-btn').forEach(btn => {
+    ativarCapturaFoto(btn,
+      (dados) => {
+        const n = btn.dataset.target;
+        form.querySelector(`[name="foto${n}"]`).value      = dados.base64;
+        form.querySelector(`[name="foto${n}_mime"]`).value = dados.mime;
+        form.querySelector(`[name="foto${n}_nome"]`).value = dados.nome;
+        document.getElementById(`foto-preview-img-${n}`).src = `data:${dados.mime};base64,${dados.base64}`;
+        document.getElementById(`foto-preview-${n}`).style.display = 'flex';
+      },
+      (msg) => alert('Erro ao processar a foto: ' + msg)
+    );
+  });
+
+  document.querySelectorAll('.foto-remover-btn').forEach(btn => {
+    btn.addEventListener('click', () => limparFotoManual(btn.dataset.target));
+  });
+
+  function limparFotoManual(n) {
+    form.querySelector(`[name="foto${n}"]`).value      = '';
+    form.querySelector(`[name="foto${n}_mime"]`).value = '';
+    form.querySelector(`[name="foto${n}_nome"]`).value = '';
+    document.getElementById(`foto-preview-${n}`).style.display = 'none';
+  }
+
   // ── Tabela de improdutivos (card 18) ──────────────────────
   function renderizarImprodutivos() {
     const dados      = AppStorage.get('sac_dados');
@@ -242,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
       el.disabled = desabilitar;
       if (desabilitar) el.value = '';
     });
+    if (desabilitar) limparFotoManual(n);
     card?.classList.toggle('vehicle-card--disabled', desabilitar);
   }
 

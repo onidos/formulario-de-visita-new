@@ -226,6 +226,13 @@ function validarCard(card) {
       ok = input.value.trim().length >= parseInt(input.dataset.minlength);
     }
 
+    // Validação: somente letras e espaços (sem números)
+    if (ok && input.dataset.onlyletters === 'true') {
+      ok = /^[a-zA-ZÀ-ÿ\s]+$/.test(input.value.trim());
+    }
+
+    // Validação extra para campos CNPJ
+
     // Validação extra para campos CNPJ
     if (ok && input.dataset.cnpjInput === 'true') {
       const digits = input.value.replace(/\D/g, '');
@@ -433,7 +440,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
   let paginaAtual = 0;
   const totalPaginas = Math.ceil(veiculos.length / POR_PAGINA);
 
-  const estado = veiculos.map(v => ({ ...v, comentario: v.comentario || '' }));
+  const estado = veiculos.map(v => ({ ...v, comentario: v.comentario || '', foto: v.foto || null }));
 
   function salvarJSON() {
     if (!hiddenInput) return;
@@ -443,6 +450,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
       entrega:    v.entrega,
       servico:    v.servico || '',
       comentario: v.comentario || '',
+      foto:       v.foto ? { base64: v.foto.base64, mime: v.foto.mime, nome: v.foto.nome } : null,
     })));
   }
 
@@ -469,6 +477,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
               <th style="${estiloTh}">Entrega</th>
               <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}min-width:140px;">Comentário <span style="color:#ffd">*</span></th>
+              <th style="${estiloTh}width:80px;text-align:center;">Foto</th>
             </tr>
           </thead>
           <tbody>
@@ -505,6 +514,12 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
                     placeholder="Mín. 5 car."
                     style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:140px;box-sizing:border-box;">
                 </td>
+                <td style="${estiloTd}text-align:center;">
+                  <button type="button" class="foto-veiculo-btn" data-idx="${idx}"
+                    style="border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.75rem;background:${v.foto ? '#e3f6e9' : '#f0f0f0'};color:${v.foto ? '#1a5c30' : '#555'};white-space:nowrap;">
+                    ${v.foto ? `<img src="data:${v.foto.mime};base64,${v.foto.base64}" style="width:22px;height:22px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:3px;">OK` : '📷'}
+                  </button>
+                </td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -536,6 +551,17 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
           salvarJSON();
         });
       }
+    });
+
+    container.querySelectorAll('.foto-veiculo-btn').forEach(btn => {
+      ativarCapturaFoto(btn,
+        (dados) => {
+          estado[parseInt(btn.dataset.idx)].foto = dados;
+          salvarJSON();
+          renderizar();
+        },
+        (msg) => alert('Erro ao processar a foto: ' + msg)
+      );
     });
 
     container.querySelector('#sac-prev-btn')?.addEventListener('click', () => { paginaAtual--; renderizar(); });
@@ -594,6 +620,73 @@ function inicializarImportSACVolume({ btnId, inputId, statusId, idMap, onImporta
     });
 
     input.value = '';
+  });
+}
+
+// ── Fotos de veículos: captura, compressão e helpers Base64 ──────────────────
+const FOTO_MAX_LARGURA = 1000; // px — reduz tamanho antes de enviar
+const FOTO_QUALIDADE   = 0.6;  // 0–1 (JPEG)
+
+/**
+ * Lê um arquivo de imagem, redimensiona/comprime via canvas e retorna
+ * { base64, mime, nome } — base64 sem o prefixo "data:...;base64,".
+ */
+function comprimirFoto(file, { maxLargura = FOTO_MAX_LARGURA, qualidade = FOTO_QUALIDADE } = {}) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      reject(new Error('Arquivo selecionado não é uma imagem.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Falha ao ler o arquivo.'));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Falha ao carregar a imagem.'));
+      img.onload = () => {
+        const escala = Math.min(1, maxLargura / img.width);
+        const w = Math.max(1, Math.round(img.width * escala));
+        const h = Math.max(1, Math.round(img.height * escala));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', qualidade);
+        resolve({
+          base64: dataUrl.split(',')[1],
+          mime: 'image/jpeg',
+          nome: (file.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg',
+        });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Liga um clique em `elemento` a um seletor de imagem (câmera ou galeria,
+ * o próprio SO do celular oferece a escolha) e chama onFoto({base64,mime,nome})
+ * após comprimir. onErro(mensagem) em caso de falha.
+ */
+function ativarCapturaFoto(elemento, onFoto, onErro) {
+  elemento.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.addEventListener('change', async () => {
+      const file = input.files[0];
+      input.remove();
+      if (!file) return;
+      try {
+        const dados = await comprimirFoto(file);
+        onFoto(dados);
+      } catch (err) {
+        if (onErro) onErro(err.message);
+      }
+    });
+    input.click();
   });
 }
 
