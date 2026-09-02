@@ -477,7 +477,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
               <th style="${estiloTh}">Entrega</th>
               <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}min-width:140px;">Comentário <span style="color:#ffd">*</span></th>
-              <th style="${estiloTh}width:80px;text-align:center;">Foto</th>
+              <th style="${estiloTh}width:64px;text-align:center;">Foto</th>
             </tr>
           </thead>
           <tbody>
@@ -515,10 +515,19 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
                     style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:140px;box-sizing:border-box;">
                 </td>
                 <td style="${estiloTd}text-align:center;">
-                  <button type="button" class="foto-veiculo-btn" data-idx="${idx}"
-                    style="border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.75rem;background:${v.foto ? '#e3f6e9' : '#f0f0f0'};color:${v.foto ? '#1a5c30' : '#555'};white-space:nowrap;">
-                    ${v.foto ? `<img src="data:${v.foto.mime};base64,${v.foto.base64}" style="width:22px;height:22px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:3px;">OK` : '📷'}
-                  </button>
+                  ${v.foto ? `
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                      <img src="data:${v.foto.mime};base64,${v.foto.base64}" style="width:32px;height:32px;object-fit:cover;border-radius:4px;border:1px solid #dde3ee;">
+                      <button type="button" class="foto-trocar-btn" data-idx="${idx}" style="border:none;background:none;color:#0051AA;font-size:.68rem;cursor:pointer;padding:0;">Trocar</button>
+                    </div>
+                  ` : `
+                    <div style="display:flex;gap:4px;justify-content:center;">
+                      <button type="button" class="foto-camera-btn" data-idx="${idx}" title="Tirar foto"
+                        style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">📷</button>
+                      <button type="button" class="foto-galeria-btn" data-idx="${idx}" title="Escolher da galeria"
+                        style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">🖼️</button>
+                    </div>
+                  `}
                 </td>
               </tr>`;
             }).join('')}
@@ -553,15 +562,25 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
       }
     });
 
-    container.querySelectorAll('.foto-veiculo-btn').forEach(btn => {
-      ativarCapturaFoto(btn,
-        (dados) => {
-          estado[parseInt(btn.dataset.idx)].foto = dados;
-          salvarJSON();
-          renderizar();
-        },
-        (msg) => alert('Erro ao processar a foto: ' + msg)
-      );
+    const salvarFotoIdx = (idx, dados) => {
+      estado[idx].foto = dados;
+      salvarJSON();
+      renderizar();
+    };
+    const erroFoto = (msg) => alert('Erro ao processar a foto: ' + msg);
+
+    container.querySelectorAll('.foto-camera-btn').forEach(btn => {
+      ativarCapturaFoto(btn, (dados) => salvarFotoIdx(parseInt(btn.dataset.idx), dados), erroFoto, { capture: 'environment' });
+    });
+    container.querySelectorAll('.foto-galeria-btn').forEach(btn => {
+      ativarCapturaFoto(btn, (dados) => salvarFotoIdx(parseInt(btn.dataset.idx), dados), erroFoto);
+    });
+    container.querySelectorAll('.foto-trocar-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        estado[parseInt(btn.dataset.idx)].foto = null;
+        salvarJSON();
+        renderizar();
+      });
     });
 
     container.querySelector('#sac-prev-btn')?.addEventListener('click', () => { paginaAtual--; renderizar(); });
@@ -668,11 +687,17 @@ function comprimirFoto(file, { maxLargura = FOTO_MAX_LARGURA, qualidade = FOTO_Q
  * o próprio SO do celular oferece a escolha) e chama onFoto({base64,mime,nome})
  * após comprimir. onErro(mensagem) em caso de falha.
  */
-function ativarCapturaFoto(elemento, onFoto, onErro) {
+/**
+ * @param {string} [opcoes.capture] - 'environment' força a câmera traseira a abrir
+ *        direto (sem passar pelo seletor de galeria). Omitir abre o seletor padrão
+ *        do sistema, que em muitos Android atuais só mostra a galeria.
+ */
+function ativarCapturaFoto(elemento, onFoto, onErro, opcoes = {}) {
   elemento.addEventListener('click', () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    if (opcoes.capture) input.setAttribute('capture', opcoes.capture);
     input.style.display = 'none';
     document.body.appendChild(input);
     input.addEventListener('change', async () => {
@@ -688,6 +713,41 @@ function ativarCapturaFoto(elemento, onFoto, onErro) {
     });
     input.click();
   });
+}
+
+// ── OCR de placa (Tesseract.js) ───────────────────────────────────────────────
+/**
+ * Tenta ler a placa a partir de uma foto (Base64). Retorna a placa formatada
+ * ("ABC-1234" ou "ABC1D23") ou null se não conseguir reconhecer nenhum padrão.
+ * Requer a biblioteca Tesseract.js carregada na página (variável global Tesseract).
+ */
+async function tentarLerPlaca(base64, mime) {
+  if (typeof Tesseract === 'undefined' || !base64) return null;
+  let worker;
+  try {
+    worker = await Tesseract.createWorker('eng');
+    await worker.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' });
+    const { data } = await worker.recognize(`data:${mime};base64,${base64}`);
+    return extrairPlacaDoTexto(data.text);
+  } catch (err) {
+    console.warn('OCR de placa falhou:', err);
+    return null;
+  } finally {
+    if (worker) { try { await worker.terminate(); } catch (_) {} }
+  }
+}
+
+/**
+ * Procura no texto reconhecido um padrão de placa brasileira:
+ * antiga (AAA9999) ou Mercosul (AAA9A99).
+ */
+function extrairPlacaDoTexto(texto) {
+  const limpo = (texto || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  let m = limpo.match(/[A-Z]{3}\d[A-Z]\d{2}/); // Mercosul: ABC1D23
+  if (m) return m[0];
+  m = limpo.match(/[A-Z]{3}\d{4}/);            // Antiga: ABC1234
+  if (m) return m[0].slice(0, 3) + '-' + m[0].slice(3);
+  return null;
 }
 
 // ── Helpers internos ─────────────────────────────────────────────────────────

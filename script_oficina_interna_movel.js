@@ -187,18 +187,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Fotos dos veículos manuais ────────────────────────────
-  document.querySelectorAll('.foto-manual-btn').forEach(btn => {
-    ativarCapturaFoto(btn,
-      (dados) => {
-        const n = btn.dataset.target;
-        form.querySelector(`[name="foto${n}"]`).value      = dados.base64;
-        form.querySelector(`[name="foto${n}_mime"]`).value = dados.mime;
-        form.querySelector(`[name="foto${n}_nome"]`).value = dados.nome;
-        document.getElementById(`foto-preview-img-${n}`).src = `data:${dados.mime};base64,${dados.base64}`;
-        document.getElementById(`foto-preview-${n}`).style.display = 'flex';
-      },
-      (msg) => alert('Erro ao processar a foto: ' + msg)
-    );
+  function salvarFotoManual(n, dados) {
+    form.querySelector(`[name="foto${n}"]`).value      = dados.base64;
+    form.querySelector(`[name="foto${n}_mime"]`).value = dados.mime;
+    form.querySelector(`[name="foto${n}_nome"]`).value = dados.nome;
+    document.getElementById(`foto-preview-img-${n}`).src = `data:${dados.mime};base64,${dados.base64}`;
+    document.getElementById(`foto-preview-${n}`).style.display = 'flex';
+    lerPlacaEPreencher(n, dados);
+  }
+  const erroFotoManual = (msg) => alert('Erro ao processar a foto: ' + msg);
+
+  async function lerPlacaEPreencher(n, dados) {
+    const statusEl = document.getElementById(`ocr-status-${n}`);
+    if (statusEl) statusEl.textContent = '🔎 Lendo a placa na foto…';
+    const placa = await tentarLerPlaca(dados.base64, dados.mime);
+    if (!statusEl) return;
+    if (placa) {
+      const placaInput = form.querySelector(`[name="placa${n}"]`);
+      if (placaInput) {
+        placaInput.value = placa;
+        placaInput.style.background = '#fff9e0';
+        setTimeout(() => { placaInput.style.background = ''; }, 4000);
+      }
+      statusEl.textContent = `🔎 Placa lida: ${placa} — confira antes de enviar.`;
+    } else {
+      statusEl.textContent = '⚠️ Não foi possível ler a placa automaticamente. Digite manualmente.';
+    }
+  }
+
+  document.querySelectorAll('.foto-manual-camera-btn').forEach(btn => {
+    ativarCapturaFoto(btn, (dados) => salvarFotoManual(btn.dataset.target, dados), erroFotoManual, { capture: 'environment' });
+  });
+  document.querySelectorAll('.foto-manual-galeria-btn').forEach(btn => {
+    ativarCapturaFoto(btn, (dados) => salvarFotoManual(btn.dataset.target, dados), erroFotoManual);
   });
 
   document.querySelectorAll('.foto-remover-btn').forEach(btn => {
