@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (modoManual) modoManual.style.display  = 'none';
 
       if (aviso) {
-        aviso.textContent = '⚠️ Tipo de Serviço e Comentário são obrigatórios para todos os veículos.';
+        aviso.textContent = '⚠️ Tipo de Serviço e Ação são obrigatórios para todos os veículos.';
         aviso.style.display = 'block';
       }
 

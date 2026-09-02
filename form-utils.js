@@ -423,6 +423,23 @@ function preencherContagemSAC(contagem, idMap) {
 
 const POR_PAGINA = 10;
 
+// ── Lista de ações disponíveis por veículo (tabela de improdutivos) ──────────
+const ACOES_VEICULO = [
+  'Aguardando entrega da peça',
+  'Carro pronto para retirada (Fleet e Livre)',
+  'Carro pronto, orientado devolução em loja',
+  'Cobrado celeridade na finalização do serviço',
+  'Desmobilização',
+  'Direcionado aprovação Fleet/Livre',
+  'Direcionado aprovação RAC',
+  'Fornecedor orientado enviar o orçamento',
+  'Implantação',
+  'Orientado a retirar o carro em loja',
+  'Prevenção á fraude',
+  'Sem agendamento Fleet/Livre',
+  'Solicitado redirecionamento guincho',
+];
+
 /**
  * Renderiza a lista paginada de veículos no container indicado.
  * @param {object} opts
@@ -440,17 +457,17 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
   let paginaAtual = 0;
   const totalPaginas = Math.ceil(veiculos.length / POR_PAGINA);
 
-  const estado = veiculos.map(v => ({ ...v, comentario: v.comentario || '', foto: v.foto || null }));
+  const estado = veiculos.map(v => ({ ...v, acao: v.acao || v.comentario || '', foto: v.foto || null }));
 
   function salvarJSON() {
     if (!hiddenInput) return;
     hiddenInput.value = JSON.stringify(estado.map(v => ({
-      placa:      v.placa,
-      status:     v.status || v.etapaOriginal,
-      entrega:    v.entrega,
-      servico:    v.servico || '',
-      comentario: v.comentario || '',
-      foto:       v.foto ? { base64: v.foto.base64, mime: v.foto.mime, nome: v.foto.nome } : null,
+      placa:   v.placa,
+      status:  v.status || v.etapaOriginal,
+      entrega: v.entrega,
+      servico: v.servico || '',
+      acao:    v.acao || '',
+      foto:    v.foto ? { base64: v.foto.base64, mime: v.foto.mime, nome: v.foto.nome } : null,
     })));
   }
 
@@ -476,7 +493,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
               <th style="${estiloTh}">Status</th>
               <th style="${estiloTh}">Entrega</th>
               <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
-              <th style="${estiloTh}min-width:140px;">Comentário <span style="color:#ffd">*</span></th>
+              <th style="${estiloTh}min-width:170px;">Ação <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}width:64px;text-align:center;">Foto</th>
             </tr>
           </thead>
@@ -509,10 +526,11 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
                   </select>
                 </td>
                 <td style="${estiloTd}">
-                  <input type="text" data-idx="${idx}" data-field="comentario"
-                    value="${(v.comentario||'').replace(/"/g,'&quot;')}"
-                    placeholder="Mín. 5 car."
-                    style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:140px;box-sizing:border-box;">
+                  <select data-idx="${idx}" data-field="acao"
+                    style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:170px;box-sizing:border-box;background:#fff;">
+                    <option value="">— Selecione —</option>
+                    ${ACOES_VEICULO.map(a => `<option value="${a}" ${v.acao === a ? 'selected' : ''}>${a}</option>`).join('')}
+                  </select>
                 </td>
                 <td style="${estiloTd}text-align:center;">
                   ${v.foto ? `
@@ -593,10 +611,10 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
     const erros = [];
     estado.forEach((v, idx) => {
       if (!v.servico) { erros.push(`Veículo ${idx+1} (${v.placa}): Tipo de Serviço obrigatório.`); valido = false; }
-      if (!validarComentario(v.comentario)) { erros.push(`Veículo ${idx+1} (${v.placa}): Comentário inválido (mín. 5 caracteres, sem atalhos de teclado).`); valido = false; }
+      if (!v.acao) { erros.push(`Veículo ${idx+1} (${v.placa}): Ação obrigatória.`); valido = false; }
     });
     if (!valido) {
-      const idxErro = estado.findIndex(v => !v.servico || !validarComentario(v.comentario));
+      const idxErro = estado.findIndex(v => !v.servico || !v.acao);
       if (idxErro >= 0) { paginaAtual = Math.floor(idxErro / POR_PAGINA); renderizar(); }
       alert('Corrija os campos antes de enviar:\n\n' + erros.slice(0,3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length-3} erro(s).` : ''));
     }
