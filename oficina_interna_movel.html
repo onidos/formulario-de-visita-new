@@ -387,9 +387,10 @@
             <div class="vehicle-card" id="veiculo-card-1">
               <div class="vehicle-card-header">
                 <span class="vehicle-number">Veículo 1</span>
-                <input type="text" name="placa1" placeholder="AAA-0000" class="placa-input" required>
+                <input type="text" name="placa1" placeholder="AAA-0000" class="placa-input" required><button type="button" class="scan-placa-btn" data-target="1" title="Escanear placa pela câmera" style="border:none;background:rgba(255,255,255,.9);border-radius:6px;padding:7px 10px;cursor:pointer;font-size:.95rem;flex-shrink:0;">📷</button>
               </div>
               <div class="vehicle-card-body" id="veiculo-body-1">
+                <div class="ocr-status" id="ocr-status-1" style="font-size:.72rem;color:#0051AA;padding:6px 16px 0;"></div>
                 <div class="input-group">
                   <label>Tipo de Serviço</label>
                   <select name="servico1" multiple required>
@@ -422,7 +423,6 @@
                   <div class="foto-preview" id="foto-preview-1" style="display:none;margin-top:8px;align-items:center;gap:10px;">
                     <img id="foto-preview-img-1" style="max-width:110px;max-height:110px;border-radius:8px;object-fit:cover;">
                     <button type="button" class="foto-remover-btn" data-target="1" style="border:none;background:none;color:#c0392b;cursor:pointer;font-size:.8rem;">Remover</button>
-                                      <div class="ocr-status" id="ocr-status-1" style="font-size:.72rem;color:#0051AA;width:100%;margin-top:2px;"></div>
 </div>
                   <input type="hidden" name="foto1">
                   <input type="hidden" name="foto1_mime">
@@ -434,10 +434,11 @@
             <div class="vehicle-card" id="veiculo-card-2">
               <div class="vehicle-card-header">
                 <span class="vehicle-number">Veículo 2</span>
-                <input type="text" name="placa2" placeholder="AAA-0000" class="placa-input">
+                <input type="text" name="placa2" placeholder="AAA-0000" class="placa-input"><button type="button" class="scan-placa-btn" data-target="2" title="Escanear placa pela câmera" style="border:none;background:rgba(255,255,255,.9);border-radius:6px;padding:7px 10px;cursor:pointer;font-size:.95rem;flex-shrink:0;">📷</button>
                 <label class="veiculo-toggle"><input type="checkbox" class="veiculo-skip-cb" data-target="2"> Não informar</label>
               </div>
               <div class="vehicle-card-body" id="veiculo-body-2">
+                <div class="ocr-status" id="ocr-status-2" style="font-size:.72rem;color:#0051AA;padding:6px 16px 0;"></div>
                 <div class="input-group">
                   <label>Tipo de Serviço</label>
                   <select name="servico2" multiple>
@@ -470,7 +471,6 @@
                   <div class="foto-preview" id="foto-preview-2" style="display:none;margin-top:8px;align-items:center;gap:10px;">
                     <img id="foto-preview-img-2" style="max-width:110px;max-height:110px;border-radius:8px;object-fit:cover;">
                     <button type="button" class="foto-remover-btn" data-target="2" style="border:none;background:none;color:#c0392b;cursor:pointer;font-size:.8rem;">Remover</button>
-                                      <div class="ocr-status" id="ocr-status-2" style="font-size:.72rem;color:#0051AA;width:100%;margin-top:2px;"></div>
 </div>
                   <input type="hidden" name="foto2">
                   <input type="hidden" name="foto2_mime">
@@ -482,10 +482,11 @@
             <div class="vehicle-card" id="veiculo-card-3">
               <div class="vehicle-card-header">
                 <span class="vehicle-number">Veículo 3</span>
-                <input type="text" name="placa3" placeholder="AAA-0000" class="placa-input">
+                <input type="text" name="placa3" placeholder="AAA-0000" class="placa-input"><button type="button" class="scan-placa-btn" data-target="3" title="Escanear placa pela câmera" style="border:none;background:rgba(255,255,255,.9);border-radius:6px;padding:7px 10px;cursor:pointer;font-size:.95rem;flex-shrink:0;">📷</button>
                 <label class="veiculo-toggle"><input type="checkbox" class="veiculo-skip-cb" data-target="3"> Não informar</label>
               </div>
               <div class="vehicle-card-body" id="veiculo-body-3">
+                <div class="ocr-status" id="ocr-status-3" style="font-size:.72rem;color:#0051AA;padding:6px 16px 0;"></div>
                 <div class="input-group">
                   <label>Tipo de Serviço</label>
                   <select name="servico3" multiple>
@@ -518,7 +519,6 @@
                   <div class="foto-preview" id="foto-preview-3" style="display:none;margin-top:8px;align-items:center;gap:10px;">
                     <img id="foto-preview-img-3" style="max-width:110px;max-height:110px;border-radius:8px;object-fit:cover;">
                     <button type="button" class="foto-remover-btn" data-target="3" style="border:none;background:none;color:#c0392b;cursor:pointer;font-size:.8rem;">Remover</button>
-                                      <div class="ocr-status" id="ocr-status-3" style="font-size:.72rem;color:#0051AA;width:100%;margin-top:2px;"></div>
 </div>
                   <input type="hidden" name="foto3">
                   <input type="hidden" name="foto3_mime">

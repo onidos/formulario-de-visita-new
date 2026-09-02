@@ -211,10 +211,18 @@ document.addEventListener('DOMContentLoaded', () => {
     form.querySelector(`[name="foto${n}_nome"]`).value = dados.nome;
     document.getElementById(`foto-preview-img-${n}`).src = `data:${dados.mime};base64,${dados.base64}`;
     document.getElementById(`foto-preview-${n}`).style.display = 'flex';
-    lerPlacaEPreencher(n, dados);
   }
   const erroFotoManual = (msg) => alert('Erro ao processar a foto: ' + msg);
 
+  document.querySelectorAll('.foto-manual-camera-btn').forEach(btn => {
+    ativarCapturaFoto(btn, (dados) => salvarFotoManual(btn.dataset.target, dados), erroFotoManual, { capture: 'environment' });
+  });
+  document.querySelectorAll('.foto-manual-galeria-btn').forEach(btn => {
+    ativarCapturaFoto(btn, (dados) => salvarFotoManual(btn.dataset.target, dados), erroFotoManual);
+  });
+
+  // ── Scanner de placa (câmera dedicada, ao lado do campo) ──
+  // A foto tirada aqui é usada só para o OCR — não é salva como foto do veículo.
   async function lerPlacaEPreencher(n, dados) {
     const statusEl = document.getElementById(`ocr-status-${n}`);
     if (statusEl) statusEl.textContent = '🔎 Lendo a placa na foto…';
@@ -229,15 +237,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       statusEl.textContent = `🔎 Placa lida: ${placa} — confira antes de enviar.`;
     } else {
-      statusEl.textContent = '⚠️ Não foi possível ler a placa automaticamente. Digite manualmente.';
+      statusEl.textContent = '⚠️ Não foi possível ler a placa. Digite manualmente.';
     }
   }
 
-  document.querySelectorAll('.foto-manual-camera-btn').forEach(btn => {
-    ativarCapturaFoto(btn, (dados) => salvarFotoManual(btn.dataset.target, dados), erroFotoManual, { capture: 'environment' });
-  });
-  document.querySelectorAll('.foto-manual-galeria-btn').forEach(btn => {
-    ativarCapturaFoto(btn, (dados) => salvarFotoManual(btn.dataset.target, dados), erroFotoManual);
+  document.querySelectorAll('.scan-placa-btn').forEach(btn => {
+    ativarCapturaFoto(btn,
+      (dados) => lerPlacaEPreencher(btn.dataset.target, dados),
+      (msg) => alert('Erro ao processar a foto: ' + msg),
+      { capture: 'environment' }
+    );
   });
 
   document.querySelectorAll('.foto-remover-btn').forEach(btn => {
@@ -282,9 +291,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function toggleVeiculo(n, desabilitar) {
     const body  = document.getElementById(`veiculo-body-${n}`);
     const placa = document.querySelector(`[name="placa${n}"]`);
+    const scanBtn = document.querySelector(`.scan-placa-btn[data-target="${n}"]`);
     const card  = document.getElementById(`veiculo-card-${n}`);
     if (!body || !placa) return;
     placa.disabled = desabilitar;
+    if (scanBtn) scanBtn.disabled = desabilitar;
     if (desabilitar) placa.value = '';
     body.style.display = desabilitar ? 'none' : 'block';
     body.querySelectorAll('input, select').forEach(el => {
