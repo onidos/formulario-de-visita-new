@@ -457,7 +457,11 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
   let paginaAtual = 0;
   const totalPaginas = Math.ceil(veiculos.length / POR_PAGINA);
 
-  const estado = veiculos.map(v => ({ ...v, acao: v.acao || v.comentario || '', foto: v.foto || null }));
+  const estado = veiculos.map(v => ({
+    ...v,
+    acao: v.acao || v.comentario || '',
+    fotos: v.fotos || (v.foto ? [v.foto] : []),
+  }));
 
   function salvarJSON() {
     if (!hiddenInput) return;
@@ -467,7 +471,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
       entrega: v.entrega,
       servico: v.servico || '',
       acao:    v.acao || '',
-      foto:    v.foto ? { base64: v.foto.base64, mime: v.foto.mime, nome: v.foto.nome } : null,
+      fotos:   (v.fotos || []).map(f => ({ base64: f.base64, mime: f.mime, nome: f.nome })),
     })));
   }
 
@@ -485,7 +489,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
         ${estado.length > POR_PAGINA ? ` — Página ${paginaAtual + 1} de ${totalPaginas}` : ''}
       </div>
       <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;border:1px solid #e0e0e0;">
-        <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:680px;">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:740px;">
           <thead>
             <tr>
               <th style="${estiloTh}width:28px;">#</th>
@@ -494,7 +498,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
               <th style="${estiloTh}">Entrega</th>
               <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}min-width:210px;">Ação <span style="color:#ffd">*</span></th>
-              <th style="${estiloTh}width:64px;text-align:center;">Foto</th>
+              <th style="${estiloTh}width:120px;text-align:center;">Fotos</th>
             </tr>
           </thead>
           <tbody>
@@ -532,20 +536,22 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
                     ${ACOES_VEICULO.map(a => `<option value="${a}" ${v.acao === a ? 'selected' : ''}>${a}</option>`).join('')}
                   </select>
                 </td>
-                <td style="${estiloTd}text-align:center;">
-                  ${v.foto ? `
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-                      <img src="data:${v.foto.mime};base64,${v.foto.base64}" style="width:32px;height:32px;object-fit:cover;border-radius:4px;border:1px solid #dde3ee;">
-                      <button type="button" class="foto-trocar-btn" data-idx="${idx}" style="border:none;background:none;color:#0051AA;font-size:.68rem;cursor:pointer;padding:0;">Trocar</button>
-                    </div>
-                  ` : `
-                    <div style="display:flex;gap:4px;justify-content:center;">
-                      <button type="button" class="foto-camera-btn" data-idx="${idx}" title="Tirar foto"
-                        style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">📷</button>
-                      <button type="button" class="foto-galeria-btn" data-idx="${idx}" title="Escolher da galeria"
-                        style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">🖼️</button>
-                    </div>
-                  `}
+                <td style="${estiloTd}text-align:center;min-width:120px;">
+                  <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-bottom:4px;">
+                    ${(v.fotos || []).map((f, fi) => `
+                      <div style="position:relative;display:inline-block;">
+                        <img src="data:${f.mime};base64,${f.base64}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;border:1px solid #dde3ee;">
+                        <button type="button" class="foto-remover-item-btn" data-idx="${idx}" data-fotoidx="${fi}" title="Remover"
+                          style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;line-height:14px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:.6rem;cursor:pointer;padding:0;">✕</button>
+                      </div>
+                    `).join('')}
+                  </div>
+                  <div style="display:flex;gap:4px;justify-content:center;">
+                    <button type="button" class="foto-camera-btn" data-idx="${idx}" title="Tirar foto"
+                      style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">📷</button>
+                    <button type="button" class="foto-galeria-btn" data-idx="${idx}" title="Escolher da galeria"
+                      style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">🖼️</button>
+                  </div>
                 </td>
               </tr>`;
             }).join('')}
@@ -580,22 +586,25 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
       }
     });
 
-    const salvarFotoIdx = (idx, dados) => {
-      estado[idx].foto = dados;
+    const adicionarFotoIdx = (idx, dados) => {
+      if (!estado[idx].fotos) estado[idx].fotos = [];
+      estado[idx].fotos.push(dados);
       salvarJSON();
       renderizar();
     };
     const erroFoto = (msg) => alert('Erro ao processar a foto: ' + msg);
 
     container.querySelectorAll('.foto-camera-btn').forEach(btn => {
-      ativarCapturaFoto(btn, (dados) => salvarFotoIdx(parseInt(btn.dataset.idx), dados), erroFoto, { capture: 'environment' });
+      ativarCapturaFoto(btn, (dados) => adicionarFotoIdx(parseInt(btn.dataset.idx), dados), erroFoto, { capture: 'environment' });
     });
     container.querySelectorAll('.foto-galeria-btn').forEach(btn => {
-      ativarCapturaFoto(btn, (dados) => salvarFotoIdx(parseInt(btn.dataset.idx), dados), erroFoto);
+      ativarCapturaFoto(btn, (dados) => adicionarFotoIdx(parseInt(btn.dataset.idx), dados), erroFoto);
     });
-    container.querySelectorAll('.foto-trocar-btn').forEach(btn => {
+    container.querySelectorAll('.foto-remover-item-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        estado[parseInt(btn.dataset.idx)].foto = null;
+        const idx = parseInt(btn.dataset.idx);
+        const fotoIdx = parseInt(btn.dataset.fotoidx);
+        estado[idx].fotos.splice(fotoIdx, 1);
         salvarJSON();
         renderizar();
       });

@@ -188,13 +188,37 @@ document.addEventListener('DOMContentLoaded', () => {
     cb.addEventListener('change', () => toggleVeiculo(cb.dataset.target, cb.checked));
   });
 
-  // ── Fotos dos veículos manuais ────────────────────────────
+  // ── Fotos dos veículos manuais (múltiplas por veículo) ────
+  const fotosManuais = { 1: [], 2: [], 3: [] };
+
+  function renderizarFotosManuais(n) {
+    const container = document.getElementById(`fotos-preview-${n}`);
+    if (!container) return;
+    container.innerHTML = fotosManuais[n].map((f, i) => `
+      <div style="position:relative;display:inline-block;">
+        <img src="data:${f.mime};base64,${f.base64}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #dde3ee;">
+        <button type="button" class="foto-manual-remover-btn" data-target="${n}" data-fotoidx="${i}" title="Remover"
+          style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;line-height:18px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:.7rem;cursor:pointer;padding:0;">✕</button>
+      </div>
+    `).join('');
+    container.querySelectorAll('.foto-manual-remover-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        fotosManuais[n].splice(parseInt(btn.dataset.fotoidx), 1);
+        atualizarHiddenFotos(n);
+        renderizarFotosManuais(n);
+      });
+    });
+  }
+
+  function atualizarHiddenFotos(n) {
+    const hidden = form.querySelector(`[name="fotos${n}"]`);
+    if (hidden) hidden.value = JSON.stringify(fotosManuais[n]);
+  }
+
   function salvarFotoManual(n, dados) {
-    form.querySelector(`[name="foto${n}"]`).value      = dados.base64;
-    form.querySelector(`[name="foto${n}_mime"]`).value = dados.mime;
-    form.querySelector(`[name="foto${n}_nome"]`).value = dados.nome;
-    document.getElementById(`foto-preview-img-${n}`).src = `data:${dados.mime};base64,${dados.base64}`;
-    document.getElementById(`foto-preview-${n}`).style.display = 'flex';
+    fotosManuais[n].push(dados);
+    atualizarHiddenFotos(n);
+    renderizarFotosManuais(n);
   }
   const erroFotoManual = (msg) => alert('Erro ao processar a foto: ' + msg);
 
@@ -233,15 +257,10 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   });
 
-  document.querySelectorAll('.foto-remover-btn').forEach(btn => {
-    btn.addEventListener('click', () => limparFotoManual(btn.dataset.target));
-  });
-
   function limparFotoManual(n) {
-    form.querySelector(`[name="foto${n}"]`).value      = '';
-    form.querySelector(`[name="foto${n}_mime"]`).value = '';
-    form.querySelector(`[name="foto${n}_nome"]`).value = '';
-    document.getElementById(`foto-preview-${n}`).style.display = 'none';
+    fotosManuais[n] = [];
+    atualizarHiddenFotos(n);
+    renderizarFotosManuais(n);
   }
 
   // ── Tabela de improdutivos (card 17-alt) ──────────────────
