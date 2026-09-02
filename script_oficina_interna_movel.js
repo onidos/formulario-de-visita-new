@@ -46,7 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.stopImmediatePropagation();
       const resposta = btn.dataset.value;
-      engine.showCard(isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '9b-alt'));
+      const destino = isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '9b-alt');
+      document.getElementById('visita-completa-hidden').value = (destino === '5') ? 'Sim' : 'Nao';
+      engine.showCard(destino);
     }, true);
   });
 
