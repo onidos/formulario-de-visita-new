@@ -39,8 +39,12 @@
   <script>
     const _key = (k) => `visita_oficina__${k}`;
 
-    // Bloqueia fora do horário permitido (07:30–18:30)
+    // Bloqueia fora do horário permitido (07:30–18:30), com liberação por senha para testes
+    const SENHA_LIBERACAO_HORARIO = '27/08';
+
     (function() {
+      if (AppStorage.get('bypass_horario')) return; // já liberado nesta sessão
+
       const agora    = new Date();
       const total    = agora.getHours() * 60 + agora.getMinutes();
       const inicio   = 7 * 60 + 30;
@@ -57,7 +61,28 @@
               O preenchimento está disponível apenas das <strong>07:30</strong> às <strong>18:30</strong>.<br>
               Horário atual: <strong>${h}:${m}</strong>
             </p>
+            <div class="input-group" style="text-align:left;margin-top:24px;">
+              <label for="senha-liberacao">Senha de liberação (uso interno/testes)</label>
+              <input type="password" id="senha-liberacao" placeholder="Digite a senha"
+                style="width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid var(--border, #ccc);border-radius:8px;font-size:.95rem;">
+            </div>
+            <button type="button" class="start-btn" id="btn-liberar">Liberar</button>
+            <p id="erro-senha" style="color:#c0392b;font-size:.82rem;display:none;margin-top:8px;">Senha incorreta.</p>
           </div>`;
+
+        function tentarLiberar() {
+          const valor = document.getElementById('senha-liberacao').value.trim();
+          if (valor === SENHA_LIBERACAO_HORARIO) {
+            AppStorage.set('bypass_horario', true);
+            window.location.reload();
+          } else {
+            document.getElementById('erro-senha').style.display = 'block';
+          }
+        }
+        document.getElementById('btn-liberar').addEventListener('click', tentarLiberar);
+        document.getElementById('senha-liberacao').addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') tentarLiberar();
+        });
       }
     })();
 
