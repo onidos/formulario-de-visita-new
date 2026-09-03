@@ -287,7 +287,7 @@ function validarCard(card) {
  * application/x-www-form-urlencoded (igual a um <form> normal), então o doPost
  * não precisa mudar nada em como lê e.parameter/e.parameters.
  */
-async function postFormulario(actionUrl, camposEntries, timeoutMs = 90000) {
+async function postFormulario(actionUrl, camposEntries, timeoutMs = 30000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -323,7 +323,7 @@ async function postFormulario(actionUrl, camposEntries, timeoutMs = 90000) {
 async function tentarReenviarBackup() {
   const dados = LocalBackup.obter();
   if (!dados) return null;
-  const resultado = await postFormulario(dados.actionUrl, dados.campos, 90000);
+  const resultado = await postFormulario(dados.actionUrl, dados.campos, 30000);
   if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();
   return resultado;
 }
@@ -332,7 +332,7 @@ async function enviarFormulario(form, btn) {
   btn.classList.add('loading');
   btn.disabled = true;
   btn.dataset.textoOriginal = btn.textContent;
-  btn.textContent = 'Enviando… pode levar até 1 minuto';
+  btn.textContent = 'Enviando…';
 
   // ID único deste envio: se cair a conexão e o analista reenviar depois, o
   // servidor usa esse ID pra reconhecer que já processou e não duplicar a linha.
@@ -348,7 +348,7 @@ async function enviarFormulario(form, btn) {
     envioId,
   }); // guarda ANTES de enviar — cobre queda de conexão, app fechado, etc.
 
-  const resultado = await postFormulario(form.action, campos, 90000);
+  const resultado = await postFormulario(form.action, campos, 30000);
 
   // Só apaga o backup quando temos confirmação real de que a planilha foi gravada.
   if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();

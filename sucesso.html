@@ -150,11 +150,13 @@
       };
       const infoEmail = {
         ok:          { cls: 'ok',          icon: '📧', msg: 'E-mail enviado para a equipe' },
+        processando: { cls: 'desconhecido',icon: '📧', msg: 'E-mail sendo enviado', hint: 'Chega em alguns minutos.' },
         erro:        { cls: 'erro',        icon: '📧', msg: 'Falha ao enviar o e-mail', hint: 'Será reenviado automaticamente quando a cota liberar.' },
         desconhecido:{ cls: 'desconhecido',icon: '📧', msg: 'Não foi possível confirmar o envio do e-mail' },
       };
       const infoPdf = {
         ok:          { cls: 'ok',          icon: '📄', msg: 'Laudo em PDF gerado' },
+        processando: { cls: 'desconhecido',icon: '📄', msg: 'Laudo sendo gerado', hint: 'Chega em alguns minutos.' },
         erro:        { cls: 'erro',        icon: '📄', msg: 'Falha ao gerar o laudo em PDF' },
         desconhecido:{ cls: 'desconhecido',icon: '📄', msg: 'Não foi possível confirmar o laudo em PDF' },
       };
@@ -176,20 +178,21 @@
         const backup     = LocalBackup.obter();
         const pendente    = !!backup;
 
-        const tudoOk     = planilha === 'ok' && email === 'ok' && (!pdf || pdf === 'ok');
-        const planilhaOk = planilha === 'ok';
+        const planilhaOk      = planilha === 'ok';
+        const aindaProcessando = email === 'processando' || pdf === 'processando';
 
-        const tituloIcon  = !confirmado ? '⏳' : tudoOk ? '✅' : planilhaOk ? '⚠️' : '❌';
+        const tituloIcon  = !confirmado ? '⏳' : planilhaOk ? '✅' : '❌';
         const tituloTexto = !confirmado
           ? 'Envio não confirmado'
-          : tudoOk ? 'Registro enviado com sucesso!'
-            : planilhaOk ? 'Registro salvo, mas com aviso' : 'Algo deu errado';
+          : planilhaOk ? 'Registro enviado com sucesso!' : 'Algo deu errado';
 
         const subtexto = !confirmado
           ? 'Não conseguimos confirmar se os dados chegaram ao servidor.'
-          : tudoOk ? 'Planilha atualizada, e-mail enviado e laudo gerado.'
-            : planilhaOk ? 'O registro foi salvo na planilha, mas houve um aviso em outra etapa.'
-              : 'Não foi possível confirmar o salvamento do registro.';
+          : planilhaOk
+            ? (aindaProcessando
+                ? 'Dados salvos na planilha. Fotos, laudo em PDF e e-mail estão sendo processados — chegam em alguns minutos.'
+                : 'Planilha atualizada, e-mail enviado e laudo gerado.')
+            : 'Não foi possível confirmar o salvamento do registro.';
 
         const ip   = infoPlanilha[planilha] || infoPlanilha.desconhecido;
         const ie   = infoEmail[email]       || infoEmail.desconhecido;
