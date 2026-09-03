@@ -503,6 +503,16 @@ function preencherContagemSAC(contagem, idMap) {
 const POR_PAGINA = 10;
 
 // ── Lista de ações disponíveis por veículo (tabela de improdutivos) ──────────
+// Limite de fotos por veículo, escalonado pelo total de placas da visita:
+// até 10 → 3 fotos | 11 a 20 → 2 fotos | acima de 20 → 1 foto.
+// Usado na tabela SAC (total variável) e no modo manual (sempre ≤3 veículos, logo sempre 3).
+function limiteFotosPorTotal(totalVeiculos) {
+  if (totalVeiculos > 20) return 1;
+  if (totalVeiculos > 10) return 2;
+  return 3;
+}
+const MAX_FOTOS_POR_VEICULO = 3; // usado no modo manual (sempre ≤3 veículos)
+
 const ACOES_VEICULO = [
   'Aguardando entrega da peça',
   'Carro pronto para retirada (Fleet e Livre)',
@@ -533,6 +543,8 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
   const container   = document.getElementById(containerId);
   const hiddenInput = document.getElementById(hiddenInputId);
   if (!container) return;
+
+  const limiteFotos = limiteFotosPorTotal(veiculos.length);
 
   let paginaAtual = 0;
   const totalPaginas = Math.ceil(veiculos.length / POR_PAGINA);
@@ -578,7 +590,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
               <th style="${estiloTh}">Entrega</th>
               <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}min-width:210px;">Ação <span style="color:#ffd">*</span></th>
-              <th style="${estiloTh}width:120px;text-align:center;">Fotos ${exigirFoto ? '<span style="color:#ffd">*</span>' : ''}</th>
+              <th style="${estiloTh}width:120px;text-align:center;">Fotos (máx. ${limiteFotos}) ${exigirFoto ? '<span style="color:#ffd">*</span>' : ''}</th>
             </tr>
           </thead>
           <tbody>
@@ -617,20 +629,22 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
                   </select>
                 </td>
                 <td style="${estiloTd}text-align:center;min-width:120px;">
-                  <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-bottom:4px;">
+                  <div style="display:flex;gap:4px;justify-content:center;margin-bottom:4px;">
+                    ${(v.fotos || []).length < limiteFotos ? `
+                      <button type="button" class="foto-camera-btn" data-idx="${idx}" title="Tirar foto"
+                        style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">📷</button>
+                      <button type="button" class="foto-galeria-btn" data-idx="${idx}" title="Escolher da galeria"
+                        style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">🖼️</button>
+                    ` : `<span style="font-size:.68rem;color:#999;">Limite de ${limiteFotos} atingido</span>`}
+                  </div>
+                  <div style="display:flex;flex-wrap:nowrap;overflow-x:auto;gap:3px;justify-content:center;height:34px;">
                     ${(v.fotos || []).map((f, fi) => `
-                      <div style="position:relative;display:inline-block;">
+                      <div style="position:relative;display:inline-block;flex-shrink:0;">
                         <img src="data:${f.mime};base64,${f.base64}" style="width:28px;height:28px;object-fit:cover;border-radius:4px;border:1px solid #dde3ee;">
                         <button type="button" class="foto-remover-item-btn" data-idx="${idx}" data-fotoidx="${fi}" title="Remover"
                           style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;line-height:14px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:.6rem;cursor:pointer;padding:0;">✕</button>
                       </div>
                     `).join('')}
-                  </div>
-                  <div style="display:flex;gap:4px;justify-content:center;">
-                    <button type="button" class="foto-camera-btn" data-idx="${idx}" title="Tirar foto"
-                      style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">📷</button>
-                    <button type="button" class="foto-galeria-btn" data-idx="${idx}" title="Escolher da galeria"
-                      style="border:none;border-radius:5px;padding:4px 6px;cursor:pointer;font-size:.85rem;background:#f0f0f0;">🖼️</button>
                   </div>
                 </td>
               </tr>`;
@@ -668,6 +682,10 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
 
     const adicionarFotoIdx = (idx, dados) => {
       if (!estado[idx].fotos) estado[idx].fotos = [];
+      if (estado[idx].fotos.length >= limiteFotos) {
+        alert(`Máximo de ${limiteFotos} foto(s) por veículo (o limite diminui quando há muitas placas).`);
+        return;
+      }
       estado[idx].fotos.push(dados);
       salvarJSON();
       renderizar();

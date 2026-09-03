@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById(`fotos-preview-${n}`);
     if (!container) return;
     container.innerHTML = fotosManuais[n].map((f, i) => `
-      <div style="position:relative;display:inline-block;">
+      <div style="position:relative;display:inline-block;flex-shrink:0;">
         <img src="data:${f.mime};base64,${f.base64}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #dde3ee;">
         <button type="button" class="foto-manual-remover-btn" data-target="${n}" data-fotoidx="${i}" title="Remover"
           style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;line-height:18px;border-radius:50%;border:none;background:#c0392b;color:#fff;font-size:.7rem;cursor:pointer;padding:0;">✕</button>
@@ -227,8 +227,16 @@ document.addEventListener('DOMContentLoaded', () => {
         fotosManuais[n].splice(parseInt(btn.dataset.fotoidx), 1);
         atualizarHiddenFotos(n);
         renderizarFotosManuais(n);
+        atualizarBotoesFoto(n);
       });
     });
+    atualizarBotoesFoto(n);
+  }
+
+  function atualizarBotoesFoto(n) {
+    const atingiuLimite = fotosManuais[n].length >= MAX_FOTOS_POR_VEICULO;
+    document.querySelectorAll(`.foto-manual-camera-btn[data-target="${n}"], .foto-manual-galeria-btn[data-target="${n}"]`)
+      .forEach(btn => { btn.style.display = atingiuLimite ? 'none' : ''; });
   }
 
   function atualizarHiddenFotos(n) {
@@ -237,6 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function salvarFotoManual(n, dados) {
+    if (fotosManuais[n].length >= MAX_FOTOS_POR_VEICULO) {
+      alert(`Máximo de ${MAX_FOTOS_POR_VEICULO} fotos por veículo.`);
+      return;
+    }
     fotosManuais[n].push(dados);
     atualizarHiddenFotos(n);
     renderizarFotosManuais(n);
