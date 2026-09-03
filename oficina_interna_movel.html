@@ -57,6 +57,16 @@
           <input type="text" id="CNPJ_Oficina" name="entry.2772692101" placeholder="Somente números" inputmode="numeric" pattern="\d*">
         </div>
         <div class="input-group">
+          <label>Foto da Fachada da Oficina <span style="color:#c0392b">*</span></label>
+          <p style="font-size:.78rem;color:var(--text-muted);margin:-4px 0 8px;">Obrigatória para visitas presenciais — comprova que o analista esteve no local.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="foto-manual-camera-btn" data-target="fachada" style="padding:9px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.85rem;">📷 Câmera</button>
+            <button type="button" class="foto-manual-galeria-btn" data-target="fachada" style="padding:9px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.85rem;">🖼️ Galeria</button>
+          </div>
+          <div class="fotos-preview" id="fotos-preview-fachada" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+          <input type="hidden" name="fotosfachada">
+        </div>
+        <div class="input-group">
           <label for="servico">Tipo de Serviço Realizado</label>
           <select id="servico" name="entry.1310088869" multiple required>
             <option value="" disabled>Selecione um serviço</option>

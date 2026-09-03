@@ -116,6 +116,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!tabelaContainer._validarTodos()) return;
       } else {
         if (!validarCard(card)) { engine._shakeCard(card); alert('Por favor, preencha todos os campos obrigatórios.'); return; }
+
+        // Modo manual: exige foto de cada veículo preenchido (só em visitas presenciais)
+        if (isPresencial()) {
+          const veiculosAtivos = [1, 2, 3].filter(n => {
+            const placaInput = form.querySelector(`[name="placa${n}"]`);
+            return placaInput && !placaInput.disabled && placaInput.value.trim();
+          });
+          const semFoto = veiculosAtivos.find(n => fotosManuais[n].length === 0);
+          if (semFoto) {
+            alert(`Por favor, adicione uma foto do Veículo ${semFoto} (obrigatória para visitas presenciais).`);
+            return;
+          }
+        }
       }
 
       enviarFormulario(form, btn);
@@ -127,6 +140,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Validações ────────────────────────────────────────────
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
+
+    // Card 100: foto da fachada obrigatória apenas em visitas presenciais
+    if (cardId === '100') {
+      if (isPresencial() && fotosManuais.fachada.length === 0) {
+        alert('Por favor, adicione uma foto da fachada da oficina (obrigatória para visitas presenciais).');
+        return false;
+      }
+    }
 
     // Card 10: se total = 0 pula direto para fornecedores (sem perguntar modo)
     if (cardId === '10') {
@@ -205,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Fotos dos veículos manuais (múltiplas por veículo) ────
-  const fotosManuais = { 1: [], 2: [], 3: [] };
+  const fotosManuais = { 1: [], 2: [], 3: [], fachada: [] };
 
   function renderizarFotosManuais(n) {
     const container = document.getElementById(`fotos-preview-${n}`);
@@ -299,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         containerId:   'tabela-improdutivos',
         hiddenInputId: 'veiculos-json',
         veiculos:      dados.veiculos,
+        exigirFoto:    isPresencial(),
       });
     } else {
       if (modoSAC)    modoSAC.style.display    = 'none';
@@ -329,5 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sel = document.getElementById('motivo');
     if (!sel) return false;
     return Array.from(sel.selectedOptions).some(o => o.value === 'Prospecção');
+  }
+
+  function isPresencial() {
+    return document.getElementById('presencial-telefone')?.value === 'Presencial';
   }
 });

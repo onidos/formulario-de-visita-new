@@ -524,8 +524,9 @@ const ACOES_VEICULO = [
  * @param {string}   opts.hiddenInputId - ID do hidden input que receberá o JSON
  * @param {boolean}  opts.servicoObrig  - se true, Tipo de Serviço é obrigatório
  * @param {object[]} opts.veiculos      - lista de veículos processados
+ * @param {boolean}  [opts.exigirFoto]  - se true, exige ao menos 1 foto por veículo
  */
-function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
+function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigirFoto = false }) {
   // Tipo de Serviço e Comentário sempre obrigatórios
   const container   = document.getElementById(containerId);
   const hiddenInput = document.getElementById(hiddenInputId);
@@ -575,7 +576,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
               <th style="${estiloTh}">Entrega</th>
               <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}min-width:210px;">Ação <span style="color:#ffd">*</span></th>
-              <th style="${estiloTh}width:120px;text-align:center;">Fotos</th>
+              <th style="${estiloTh}width:120px;text-align:center;">Fotos ${exigirFoto ? '<span style="color:#ffd">*</span>' : ''}</th>
             </tr>
           </thead>
           <tbody>
@@ -698,9 +699,10 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos }) {
     estado.forEach((v, idx) => {
       if (!v.servico) { erros.push(`Veículo ${idx+1} (${v.placa}): Tipo de Serviço obrigatório.`); valido = false; }
       if (!v.acao) { erros.push(`Veículo ${idx+1} (${v.placa}): Ação obrigatória.`); valido = false; }
+      if (exigirFoto && (!v.fotos || v.fotos.length === 0)) { erros.push(`Veículo ${idx+1} (${v.placa}): Foto obrigatória.`); valido = false; }
     });
     if (!valido) {
-      const idxErro = estado.findIndex(v => !v.servico || !v.acao);
+      const idxErro = estado.findIndex(v => !v.servico || !v.acao || (exigirFoto && (!v.fotos || v.fotos.length === 0)));
       if (idxErro >= 0) { paginaAtual = Math.floor(idxErro / POR_PAGINA); renderizar(); }
       alert('Corrija os campos antes de enviar:\n\n' + erros.slice(0,3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length-3} erro(s).` : ''));
     }
