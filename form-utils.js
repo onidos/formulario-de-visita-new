@@ -97,16 +97,9 @@ const AppStorage = {
 // cair ou o app for fechado no meio do envio.
 const LocalBackup = {
   KEY: 'unidas_visita_pendente_v1',
-  salvar(form) {
+  salvar({ actionUrl, campos, tipoOficina, nomeOficina, envioId }) {
     try {
-      const campos = Array.from(new FormData(form).entries());
-      const dados = {
-        criadoEm:    new Date().toISOString(),
-        actionUrl:   form.action,
-        tipoOficina: AppStorage.get('tipo_oficina') || '',
-        nomeOficina: form.querySelector('#loja')?.value || '',
-        campos,
-      };
+      const dados = { criadoEm: new Date().toISOString(), actionUrl, campos, tipoOficina, nomeOficina, envioId };
       localStorage.setItem(this.KEY, JSON.stringify(dados));
     } catch (err) { console.warn('Falha ao salvar backup local:', err); }
   },
@@ -120,6 +113,11 @@ const LocalBackup = {
     try { localStorage.removeItem(this.KEY); } catch (err) {}
   },
 };
+
+function gerarEnvioId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+}
 
 // ── Validação e máscara de CNPJ ──────────────────────────────────────────────
 function validarCNPJ(cnpj) {
@@ -277,82 +275,55 @@ function validarCard(card) {
 
 // ── Envio de formulário ──────────────────────────────────────────────────────
 /**
- * POST de baixo nível via iframe oculto. Nunca "assume sucesso": se o tempo
- * esgotar ou a resposta não vier em JSON válido, retorna confirmado:false —
- * quem chamar decide o que fazer (ex: manter o backup local para reenviar).
+ * POST via fetch(). Nunca "assume sucesso": se o tempo esgotar, a rede falhar,
+ * ou a resposta não vier em JSON válido, retorna confirmado:false — quem
+ * chamar decide o que fazer (ex: manter o backup local para reenviar).
+ *
+ * Usa fetch() em vez de iframe: a resposta do Apps Script é sempre redirecionada
+ * para script.googleusercontent.com (outro domínio), e o navegador bloqueia por
+ * segurança a leitura de um iframe de domínio diferente — então a confirmação
+ * nunca chegava a ser lida por esse método. fetch() consegue ler porque o Google
+ * libera esse acesso via CORS para essa rota. O formato do corpo continua sendo
+ * application/x-www-form-urlencoded (igual a um <form> normal), então o doPost
+ * não precisa mudar nada em como lê e.parameter/e.parameters.
  */
-function postViaIframe(actionUrl, camposEntries, timeoutMs = 20000) {
-  return new Promise((resolve) => {
-    const sufixo = Date.now() + '-' + Math.random().toString(36).slice(2);
-    const iframe = document.createElement('iframe');
-    iframe.name = 'submit-target-' + sufixo;
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
+async function postFormulario(actionUrl, camposEntries, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    const tempForm = document.createElement('form');
-    tempForm.method = 'POST';
-    tempForm.action = actionUrl;
-    tempForm.target = iframe.name;
-    tempForm.style.display = 'none';
-    camposEntries.forEach(([nome, valor]) => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = nome;
-      input.value = valor;
-      tempForm.appendChild(input);
-    });
-    document.body.appendChild(tempForm);
+  try {
+    const corpo = new URLSearchParams();
+    camposEntries.forEach(([nome, valor]) => corpo.append(nome, valor));
 
-    let resolvido = false;
-    const limpar = () => { iframe.remove(); tempForm.remove(); };
+    const resposta = await fetch(actionUrl, { method: 'POST', body: corpo, signal: controller.signal });
+    clearTimeout(timer);
 
-    const timer = setTimeout(() => {
-      if (resolvido) return;
-      resolvido = true;
-      limpar();
-      resolve({
-        confirmado: false, planilha: 'desconhecido', email: 'desconhecido', pdf: 'desconhecido',
-        erro: 'Tempo esgotado aguardando resposta do servidor.',
-      });
-    }, timeoutMs);
-
-    iframe.addEventListener('load', () => {
-      if (resolvido) return;
-      resolvido = true;
-      clearTimeout(timer);
-      let resultado;
-      try {
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-        const texto = iframeDoc.body ? iframeDoc.body.innerText.trim() : '';
-        const json  = JSON.parse(texto);
-        resultado = {
-          confirmado: true,
-          planilha: json.planilha || (json.status === 'ok' ? 'ok' : 'erro'),
-          email:    json.email    || (json.status === 'ok' ? 'ok' : 'erro'),
-          pdf:      json.pdf      || 'desconhecido',
-          erro:     json.erro || json.message || '',
-        };
-      } catch (err) {
-        // Resposta não veio em JSON válido — não dá pra confirmar nada.
-        // (Antes o sistema assumia "planilha: ok" aqui, o que podia esconder falhas reais.)
-        resultado = {
-          confirmado: false, planilha: 'desconhecido', email: 'desconhecido', pdf: 'desconhecido',
-          erro: 'Resposta inesperada do servidor.',
-        };
-      }
-      limpar();
-      resolve(resultado);
-    });
-
-    tempForm.submit();
-  });
+    const texto = await resposta.text();
+    const json  = JSON.parse(texto);
+    return {
+      confirmado: true,
+      planilha: json.planilha || (json.status === 'ok' ? 'ok' : 'erro'),
+      email:    json.email    || (json.status === 'ok' ? 'ok' : 'erro'),
+      pdf:      json.pdf      || 'desconhecido',
+      erro:     json.erro || json.message || '',
+    };
+  } catch (err) {
+    clearTimeout(timer);
+    // Rede falhou, tempo esgotou (AbortError), ou a resposta não veio em JSON válido —
+    // não dá pra confirmar nada. (A versão antiga assumia "planilha: ok" aqui, o que
+    // podia esconder falhas reais.)
+    return {
+      confirmado: false, planilha: 'desconhecido', email: 'desconhecido', pdf: 'desconhecido',
+      erro: err.name === 'AbortError' ? 'Tempo esgotado aguardando resposta do servidor.' : 'Resposta inesperada do servidor.',
+    };
+  }
 }
 
 /** Tenta reenviar o backup local salvo (se houver). Retorna null se não há nada pendente. */
 async function tentarReenviarBackup() {
   const dados = LocalBackup.obter();
   if (!dados) return null;
-  const resultado = await postViaIframe(dados.actionUrl, dados.campos, 20000);
+  const resultado = await postFormulario(dados.actionUrl, dados.campos, 20000);
   if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();
   return resultado;
 }
@@ -361,10 +332,21 @@ async function enviarFormulario(form, btn) {
   btn.classList.add('loading');
   btn.disabled = true;
 
-  LocalBackup.salvar(form); // guarda ANTES de enviar — cobre queda de conexão, app fechado, etc.
+  // ID único deste envio: se cair a conexão e o analista reenviar depois, o
+  // servidor usa esse ID pra reconhecer que já processou e não duplicar a linha.
+  const envioId = gerarEnvioId();
+  const campos  = Array.from(new FormData(form).entries());
+  campos.push(['envio_id', envioId]);
 
-  const campos    = Array.from(new FormData(form).entries());
-  const resultado = await postViaIframe(form.action, campos, 20000);
+  LocalBackup.salvar({
+    actionUrl:   form.action,
+    campos,
+    tipoOficina: AppStorage.get('tipo_oficina') || '',
+    nomeOficina: form.querySelector('#loja')?.value || '',
+    envioId,
+  }); // guarda ANTES de enviar — cobre queda de conexão, app fechado, etc.
+
+  const resultado = await postFormulario(form.action, campos, 20000);
 
   // Só apaga o backup quando temos confirmação real de que a planilha foi gravada.
   if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();
