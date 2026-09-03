@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registro de Visita — Oficina</title>
   <link rel="stylesheet" href="style.css">
+  <script src="form-utils.js"></script>
 </head>
 <body>
   <div class="container">
@@ -73,6 +74,47 @@
         ? 'oficina_externa.html'
         : 'oficina_interna_movel.html';
     });
+
+    // Aviso de visita pendente: dados já preenchidos numa sessão anterior que
+    // não chegaram a ser confirmados (queda de conexão, app fechado, etc.).
+    // Funciona independente do horário — não é o início de uma nova visita.
+    (function() {
+      const backup = typeof LocalBackup !== 'undefined' ? LocalBackup.obter() : null;
+      if (!backup) return;
+
+      const detalhe = backup.nomeOficina ? ` — ${backup.nomeOficina}` : '';
+      const horaEnvio = backup.criadoEm ? new Date(backup.criadoEm).toLocaleString('pt-BR') : '';
+
+      const banner = document.createElement('div');
+      banner.style.cssText = 'background:#fff9e6;border:1.5px solid #f0d080;border-radius:var(--radius-sm);padding:16px 18px;margin-bottom:16px;text-align:center;';
+      banner.innerHTML = `
+        <p style="margin:0 0 10px;font-size:.88rem;color:#7a5a00;">
+          ⚠️ Você tem uma visita${detalhe} não confirmada${horaEnvio ? ' (' + horaEnvio + ')' : ''}.
+          Seus dados continuam salvos neste aparelho.
+        </p>
+        <div style="display:flex;gap:8px;">
+          <button type="button" id="banner-reenviar" style="flex:1;background:#0051AA;color:#fff;border:none;border-radius:8px;padding:11px;font-size:.9rem;font-weight:600;cursor:pointer;">🔄 Reenviar agora</button>
+          <button type="button" id="banner-descartar" style="background:none;border:1px solid #ccc;border-radius:8px;padding:11px 14px;font-size:.9rem;cursor:pointer;color:#666;">Descartar</button>
+        </div>
+      `;
+      document.querySelector('.container').prepend(banner);
+
+      document.getElementById('banner-reenviar').addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        btn.textContent = 'Reenviando…';
+        const resultado = await tentarReenviarBackup();
+        AppStorage.set('submit_result', resultado);
+        window.location.href = 'sucesso.html';
+      });
+
+      document.getElementById('banner-descartar').addEventListener('click', () => {
+        if (confirm('Descartar essa visita pendente? Os dados salvos neste aparelho serão apagados.')) {
+          LocalBackup.limpar();
+          banner.remove();
+        }
+      });
+    })();
   </script>
 </body>
 </html>

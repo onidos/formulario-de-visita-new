@@ -91,6 +91,36 @@ const AppStorage = {
   remove(k)  { try { sessionStorage.removeItem(this._key(k)); } catch(_){} },
 };
 
+// ── Backup local do formulário (localStorage — sobrevive a fechar o app/navegador) ──
+// Guardado logo antes do envio; só é apagado quando temos confirmação real de que
+// a planilha foi gravada. Isso permite reenviar sem redigitar tudo se a conexão
+// cair ou o app for fechado no meio do envio.
+const LocalBackup = {
+  KEY: 'unidas_visita_pendente_v1',
+  salvar(form) {
+    try {
+      const campos = Array.from(new FormData(form).entries());
+      const dados = {
+        criadoEm:    new Date().toISOString(),
+        actionUrl:   form.action,
+        tipoOficina: AppStorage.get('tipo_oficina') || '',
+        nomeOficina: form.querySelector('#loja')?.value || '',
+        campos,
+      };
+      localStorage.setItem(this.KEY, JSON.stringify(dados));
+    } catch (err) { console.warn('Falha ao salvar backup local:', err); }
+  },
+  obter() {
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) { return null; }
+  },
+  limpar() {
+    try { localStorage.removeItem(this.KEY); } catch (err) {}
+  },
+};
+
 // ── Validação e máscara de CNPJ ──────────────────────────────────────────────
 function validarCNPJ(cnpj) {
   cnpj = cnpj.replace(/\D/g, '');
@@ -246,36 +276,101 @@ function validarCard(card) {
 }
 
 // ── Envio de formulário ──────────────────────────────────────────────────────
-function enviarFormulario(form, btn) {
+/**
+ * POST de baixo nível via iframe oculto. Nunca "assume sucesso": se o tempo
+ * esgotar ou a resposta não vier em JSON válido, retorna confirmado:false —
+ * quem chamar decide o que fazer (ex: manter o backup local para reenviar).
+ */
+function postViaIframe(actionUrl, camposEntries, timeoutMs = 20000) {
+  return new Promise((resolve) => {
+    const sufixo = Date.now() + '-' + Math.random().toString(36).slice(2);
+    const iframe = document.createElement('iframe');
+    iframe.name = 'submit-target-' + sufixo;
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const tempForm = document.createElement('form');
+    tempForm.method = 'POST';
+    tempForm.action = actionUrl;
+    tempForm.target = iframe.name;
+    tempForm.style.display = 'none';
+    camposEntries.forEach(([nome, valor]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = nome;
+      input.value = valor;
+      tempForm.appendChild(input);
+    });
+    document.body.appendChild(tempForm);
+
+    let resolvido = false;
+    const limpar = () => { iframe.remove(); tempForm.remove(); };
+
+    const timer = setTimeout(() => {
+      if (resolvido) return;
+      resolvido = true;
+      limpar();
+      resolve({
+        confirmado: false, planilha: 'desconhecido', email: 'desconhecido', pdf: 'desconhecido',
+        erro: 'Tempo esgotado aguardando resposta do servidor.',
+      });
+    }, timeoutMs);
+
+    iframe.addEventListener('load', () => {
+      if (resolvido) return;
+      resolvido = true;
+      clearTimeout(timer);
+      let resultado;
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        const texto = iframeDoc.body ? iframeDoc.body.innerText.trim() : '';
+        const json  = JSON.parse(texto);
+        resultado = {
+          confirmado: true,
+          planilha: json.planilha || (json.status === 'ok' ? 'ok' : 'erro'),
+          email:    json.email    || (json.status === 'ok' ? 'ok' : 'erro'),
+          pdf:      json.pdf      || 'desconhecido',
+          erro:     json.erro || json.message || '',
+        };
+      } catch (err) {
+        // Resposta não veio em JSON válido — não dá pra confirmar nada.
+        // (Antes o sistema assumia "planilha: ok" aqui, o que podia esconder falhas reais.)
+        resultado = {
+          confirmado: false, planilha: 'desconhecido', email: 'desconhecido', pdf: 'desconhecido',
+          erro: 'Resposta inesperada do servidor.',
+        };
+      }
+      limpar();
+      resolve(resultado);
+    });
+
+    tempForm.submit();
+  });
+}
+
+/** Tenta reenviar o backup local salvo (se houver). Retorna null se não há nada pendente. */
+async function tentarReenviarBackup() {
+  const dados = LocalBackup.obter();
+  if (!dados) return null;
+  const resultado = await postViaIframe(dados.actionUrl, dados.campos, 20000);
+  if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();
+  return resultado;
+}
+
+async function enviarFormulario(form, btn) {
   btn.classList.add('loading');
   btn.disabled = true;
-  const iframeName = 'submit-target-' + Date.now();
-  const iframe = document.createElement('iframe');
-  iframe.name = iframeName;
-  iframe.style.display = 'none';
-  document.body.appendChild(iframe);
-  const fallbackTimer = setTimeout(() => {
-    AppStorage.set('submit_result', { planilha: 'desconhecido', email: 'desconhecido' });
-    window.location.href = 'sucesso.html';
-  }, 20000);
-  iframe.addEventListener('load', () => {
-    clearTimeout(fallbackTimer);
-    try {
-      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-      const texto = iframeDoc.body ? iframeDoc.body.innerText.trim() : '';
-      const json  = JSON.parse(texto);
-      AppStorage.set('submit_result', {
-        planilha: json.planilha || (json.status === 'ok' ? 'ok' : 'erro'),
-        email:    json.email    || (json.status === 'ok' ? 'ok' : 'desconhecido'),
-        erro:     json.erro     || json.message || '',
-      });
-    } catch (_) {
-      AppStorage.set('submit_result', { planilha: 'ok', email: 'desconhecido' });
-    }
-    window.location.href = 'sucesso.html';
-  });
-  form.target = iframeName;
-  form.submit();
+
+  LocalBackup.salvar(form); // guarda ANTES de enviar — cobre queda de conexão, app fechado, etc.
+
+  const campos    = Array.from(new FormData(form).entries());
+  const resultado = await postViaIframe(form.action, campos, 20000);
+
+  // Só apaga o backup quando temos confirmação real de que a planilha foi gravada.
+  if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();
+
+  AppStorage.set('submit_result', resultado);
+  window.location.href = 'sucesso.html';
 }
 
 // ── SAC: Mapeamento de etapas ────────────────────────────────────────────────
