@@ -11,6 +11,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   engine.init();
 
+  // Popula os selects de "Ação" do modo manual com a mesma lista usada na
+  // tabela SAC (ACOES_VEICULO, definida em form-utils.js) — evita manter a
+  // lista duplicada em vários lugares.
+  [1, 2, 3].forEach(n => {
+    const sel = document.getElementById(`acao${n}`);
+    if (!sel) return;
+    ACOES_VEICULO.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a;
+      sel.appendChild(opt);
+    });
+  });
+
   preencherDataHora(
     document.getElementById('data-visita'),
     document.getElementById('horario-visita')
@@ -125,6 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
         }
+
+        coletarAcoesManual();
       }
 
       enviarFormulario(form, btn);
@@ -294,6 +310,22 @@ document.addEventListener('DOMContentLoaded', () => {
     fotosManuais[n] = [];
     atualizarHiddenFotos(n);
     renderizarFotosManuais(n);
+  }
+
+  // Monta um array com a ação de cada veículo preenchido no modo manual e
+  // salva num único campo oculto (uma célula só na planilha) — mesmo padrão
+  // já usado pro veiculos_json do modo SAC.
+  function coletarAcoesManual() {
+    const acoes = [];
+    [1, 2, 3].forEach(n => {
+      const placaInput = form.querySelector(`[name="placa${n}"]`);
+      const acaoSelect = document.getElementById(`acao${n}`);
+      if (!placaInput || placaInput.disabled || !placaInput.value.trim()) return;
+      if (!acaoSelect || !acaoSelect.value) return;
+      acoes.push({ placa: placaInput.value.trim(), acao: acaoSelect.value });
+    });
+    const hidden = document.getElementById('acoes-manual-json');
+    if (hidden) hidden.value = JSON.stringify(acoes);
   }
 
   // ── Tabela de improdutivos (card 17-alt) ──────────────────

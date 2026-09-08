@@ -387,6 +387,7 @@
           <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:12px;">Veículos ordenados do mais antigo para o mais recente. Confira e ajuste se necessário.</p>
           <div id="tabela-improdutivos"></div>
           <input type="hidden" id="veiculos-json" name="entry.veiculos_json">
+          <input type="hidden" id="acoes-manual-json" name="entry.acoes_manual_json">
         </div>
 
         <!-- Modo manual: 3 campos de placa -->
@@ -426,6 +427,12 @@
                       <option value="Em Serviço">Em Serviço</option>
                     </select>
                   </div>
+                </div>
+                <div class="input-group">
+                  <label>Ação</label>
+                  <select id="acao1" required>
+                    <option value="" disabled selected>Selecione</option>
+                  </select>
                 </div>
                 <div class="input-group">
                   <label>Fotos do Veículo</label>
@@ -471,6 +478,12 @@
                   </div>
                 </div>
                 <div class="input-group">
+                  <label>Ação</label>
+                  <select id="acao2">
+                    <option value="" selected>Selecione</option>
+                  </select>
+                </div>
+                <div class="input-group">
                   <label>Fotos do Veículo</label>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="foto-manual-camera-btn" data-target="2" style="padding:9px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.85rem;">📷 Câmera</button><button type="button" class="foto-manual-galeria-btn" data-target="2" style="padding:9px 14px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.85rem;">🖼️ Galeria</button></div>
                   <div class="fotos-preview" id="fotos-preview-2" style="display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;margin-top:8px;height:72px;"></div>
@@ -512,6 +525,12 @@
                       <option value="Em Serviço">Em Serviço</option>
                     </select>
                   </div>
+                </div>
+                <div class="input-group">
+                  <label>Ação</label>
+                  <select id="acao3">
+                    <option value="" selected>Selecione</option>
+                  </select>
                 </div>
                 <div class="input-group">
                   <label>Fotos do Veículo</label>
