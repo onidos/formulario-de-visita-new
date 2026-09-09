@@ -631,7 +631,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
               <th style="${estiloTh}width:28px;">#</th>
               <th style="${estiloTh}white-space:nowrap;">Placa</th>
               <th style="${estiloTh}">Status <span style="color:#ffd">*</span></th>
-              <th style="${estiloTh}">Entrega</th>
+              <th style="${estiloTh}">Entrega <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}">Observação</th>
               <th style="${estiloTh}min-width:210px;">Ação <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}width:120px;text-align:center;">Fotos (máx. ${limiteFotos}) ${exigirFoto ? '<span style="color:#ffd">*</span>' : ''}</th>
@@ -777,11 +777,12 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
     const precisaFoto = v => exigirFoto && v.status !== 'Fora de Serviço';
     estado.forEach((v, idx) => {
       if (!v.status) { erros.push(`Veículo ${idx+1} (${v.placa}): Status obrigatório.`); valido = false; }
+      if (!v.entrega) { erros.push(`Veículo ${idx+1} (${v.placa}): Dt. Prev. Entrega obrigatória.`); valido = false; }
       if (!v.acao) { erros.push(`Veículo ${idx+1} (${v.placa}): Ação obrigatória.`); valido = false; }
       if (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)) { erros.push(`Veículo ${idx+1} (${v.placa}): Foto obrigatória.`); valido = false; }
     });
     if (!valido) {
-      const idxErro = estado.findIndex(v => !v.status || !v.acao || (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)));
+      const idxErro = estado.findIndex(v => !v.status || !v.entrega || !v.acao || (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)));
       if (idxErro >= 0) { paginaAtual = Math.floor(idxErro / POR_PAGINA); renderizar(); }
       alert('Corrija os campos antes de enviar:\n\n' + erros.slice(0,3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length-3} erro(s).` : ''));
     }
