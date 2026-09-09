@@ -300,8 +300,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Scanner de placa (câmera dedicada, ao lado do campo) ──
-  // A foto tirada aqui é usada só para o OCR — não é salva como foto do veículo.
+  // A foto tirada aqui também é salva como foto do veículo (junto com as
+  // demais), mesmo que o OCR não consiga ler a placa — o analista não
+  // precisa tirar a mesma foto de novo depois.
   async function lerPlacaEPreencher(n, dados) {
+    salvarFotoManual(n, dados);
+
     const statusEl = document.getElementById(`ocr-status-${n}`);
     if (statusEl) statusEl.textContent = '🔎 Lendo a placa na foto…';
     const placa = await tentarLerPlaca(dados.base64, dados.mime);
