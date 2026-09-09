@@ -645,7 +645,13 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
               return `
               <tr style="background:${bg};">
                 <td style="${estiloTd}color:#999;text-align:center;">${idx + 1}</td>
-                <td style="${estiloTd}font-weight:700;white-space:nowrap;">${v.placa}</td>
+                <td style="${estiloTd}font-weight:700;white-space:nowrap;">
+                  ${v.placa}
+                  ${(v.fotos || []).length < limiteFotos ? `
+                    <button type="button" class="foto-placa-btn" data-idx="${idx}" title="Tirar foto da placa"
+                      style="border:none;border-radius:5px;padding:2px 5px;cursor:pointer;font-size:.78rem;background:#f0f0f0;margin-left:4px;">📷</button>
+                  ` : ''}
+                </td>
                 <td style="${estiloTd}">
                   <select data-idx="${idx}" data-field="status"
                     style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:110px;background:#fff;">
@@ -746,6 +752,11 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
     });
     container.querySelectorAll('.foto-galeria-btn').forEach(btn => {
       ativarCapturaFoto(btn, (dados) => adicionarFotoIdx(parseInt(btn.dataset.idx), dados), erroFoto);
+    });
+    // Botão de câmera junto da placa: mesma função de salvar foto do
+    // veículo, sem OCR (a placa já veio do arquivo, não precisa ser lida).
+    container.querySelectorAll('.foto-placa-btn').forEach(btn => {
+      ativarCapturaFoto(btn, (dados) => adicionarFotoIdx(parseInt(btn.dataset.idx), dados), erroFoto, { capture: 'environment' });
     });
     container.querySelectorAll('.foto-remover-item-btn').forEach(btn => {
       btn.addEventListener('click', () => {
