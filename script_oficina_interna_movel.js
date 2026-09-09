@@ -334,6 +334,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Tabela de improdutivos (card 17-alt) ──────────────────
+  function obterVeiculosParaTabela(dadosImportados) {
+    // Se a tabela já foi preenchida antes (analista navegou pra outro card
+    // e voltou), restaura o estado atual do hidden — senão TODOS os campos
+    // (status, serviço, ação, fotos) seriam perdidos a cada ida e volta.
+    const hiddenAtual = document.getElementById('veiculos-json')?.value;
+    if (hiddenAtual) {
+      try {
+        const restaurado = JSON.parse(hiddenAtual);
+        if (Array.isArray(restaurado) && restaurado.length) return restaurado;
+      } catch (err) { /* segue com o import original */ }
+    }
+    // Primeira vez que a tabela é montada nesta visita: mantém tudo do
+    // import, mas zera o status pra obrigar o analista a revisar e
+    // escolher ativamente (em vez de aceitar sem olhar o valor importado).
+    return dadosImportados.veiculos.map(v => ({ ...v, status: '' }));
+  }
+
   function renderizarImprodutivos() {
     const dados      = AppStorage.get('sac_dados');
     const modoSAC    = document.getElementById('modo-sac');
@@ -345,14 +362,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (modoManual) modoManual.style.display  = 'none';
 
       if (aviso) {
-        aviso.textContent = '⚠️ Tipo de Serviço e Ação são obrigatórios para todos os veículos.';
+        aviso.textContent = '⚠️ Status, Tipo de Serviço e Ação são obrigatórios para todos os veículos.';
         aviso.style.display = 'block';
       }
 
       inicializarTabelaVeiculos({
         containerId:   'tabela-improdutivos',
         hiddenInputId: 'veiculos-json',
-        veiculos:      dados.veiculos,
+        veiculos:      obterVeiculosParaTabela(dados),
         exigirFoto:    isPresencial(),
         idMap:         idMapContagemVeiculos,
       });

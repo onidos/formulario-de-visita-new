@@ -406,14 +406,23 @@ const MAPA_STATUS_CONTAGEM = {
  * exigir que o analista abra outra tela. "Total" e "Entregues no dia" não
  * são tocados aqui: total é sempre a contagem de linhas da tabela (não muda
  * por edição de status) e "entregues" é uma pergunta separada, não um status.
+ *
+ * Se NENHUM veículo tiver status escolhido ainda (ex: tabela recém-aberta,
+ * status começa em branco de propósito), não sobrescreve nada — mantém os
+ * valores importados do XLSX até o analista começar a confirmar de verdade.
  */
 function recalcularContagemPorStatus(estado, idMap) {
   if (!idMap) return;
   const contagem = { orcamento: 0, fs: 0, servico: 0, pecas: 0, aprovacao: 0 };
+  let algumStatusDefinido = false;
   (estado || []).forEach(v => {
     const campo = MAPA_STATUS_CONTAGEM[v.status];
-    if (campo && contagem[campo] !== undefined) contagem[campo]++;
+    if (campo && contagem[campo] !== undefined) {
+      contagem[campo]++;
+      algumStatusDefinido = true;
+    }
   });
+  if (!algumStatusDefinido) return;
   Object.keys(contagem).forEach(campo => {
     const id = idMap[campo];
     const el = id && document.getElementById(id);
@@ -622,7 +631,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
             <tr>
               <th style="${estiloTh}width:28px;">#</th>
               <th style="${estiloTh}white-space:nowrap;">Placa</th>
-              <th style="${estiloTh}">Status</th>
+              <th style="${estiloTh}">Status <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}">Entrega</th>
               <th style="${estiloTh}">Serviço <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}min-width:210px;">Ação <span style="color:#ffd">*</span></th>
@@ -640,6 +649,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
                 <td style="${estiloTd}">
                   <select data-idx="${idx}" data-field="status"
                     style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:110px;background:#fff;">
+                    <option value="">— Selecione —</option>
                     ${['Fora de Serviço','Pend. Orçamento','Pend. Aprovação','Erro Material','Pend. Peça','Em Serviço']
                       .map(s => `<option value="${s}" ${v.status === s ? 'selected' : ''}>${s}</option>`).join('')}
                   </select>
@@ -756,12 +766,13 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
     let valido = true;
     const erros = [];
     estado.forEach((v, idx) => {
+      if (!v.status) { erros.push(`Veículo ${idx+1} (${v.placa}): Status obrigatório.`); valido = false; }
       if (!v.servico) { erros.push(`Veículo ${idx+1} (${v.placa}): Tipo de Serviço obrigatório.`); valido = false; }
       if (!v.acao) { erros.push(`Veículo ${idx+1} (${v.placa}): Ação obrigatória.`); valido = false; }
       if (exigirFoto && (!v.fotos || v.fotos.length === 0)) { erros.push(`Veículo ${idx+1} (${v.placa}): Foto obrigatória.`); valido = false; }
     });
     if (!valido) {
-      const idxErro = estado.findIndex(v => !v.servico || !v.acao || (exigirFoto && (!v.fotos || v.fotos.length === 0)));
+      const idxErro = estado.findIndex(v => !v.status || !v.servico || !v.acao || (exigirFoto && (!v.fotos || v.fotos.length === 0)));
       if (idxErro >= 0) { paginaAtual = Math.floor(idxErro / POR_PAGINA); renderizar(); }
       alert('Corrija os campos antes de enviar:\n\n' + erros.slice(0,3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length-3} erro(s).` : ''));
     }
