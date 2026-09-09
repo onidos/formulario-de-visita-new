@@ -1,5 +1,5 @@
 /**
- * script_oficina_interna_movel.js
+ * script_oficina_externa.js
  * Depende de: form-utils.js, form-engine.js
  */
 
@@ -35,11 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const enderecoInput  = document.getElementById('endereco');
   const latitudeInput  = document.getElementById('latitude');
   const longitudeInput = document.getElementById('longitude');
+  const cidadeInput    = document.getElementById('cidade-input');
 
   document.getElementById('get-location')?.addEventListener('click', () =>
-    obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput })
+    obterLocalizacao({ enderecoInput, latitudeInput, longitudeInput, cidadeInput })
   );
-  if (enderecoInput) inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput });
+  if (enderecoInput) inicializarAutocomplete({ enderecoInput, latitudeInput, longitudeInput, cidadeInput });
 
   document.getElementById('home-btn')?.addEventListener('click', () => {
     window.location.href = 'index_visita_oficina.html';
@@ -48,11 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Card 0b ───────────────────────────────────────────────
   document.getElementById('btn-presencial')?.addEventListener('click', () => {
     document.getElementById('presencial-telefone').value = 'Presencial';
-    engine.showCard('2');
+    engine.showCard('100');
   });
   document.getElementById('btn-telefone')?.addEventListener('click', () => {
     document.getElementById('presencial-telefone').value = 'Telefone';
-    engine.showCard('2');
+    engine.showCard('100');
   });
 
   // ── Card 4b: visita completa ──────────────────────────────
@@ -60,13 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.stopImmediatePropagation();
       const resposta = btn.dataset.value;
-      const destino = isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '9b-alt');
+      const destino = isProspeccao() ? '5' : (resposta === 'Sim' ? '5' : '10b');
       document.getElementById('visita-completa-hidden').value = (destino === '5') ? 'Sim' : 'Nao';
       engine.showCard(destino);
     }, true);
   });
 
-  // ── Card 9b-alt: escolha de modo (importar ou manual) ────
+  // ── Card 10b: escolha de modo (importar ou manual) ───────
   document.getElementById('btn-modo-importar')?.addEventListener('click', () => {
     document.getElementById('input-import-sac-vol')?.click();
   });
@@ -74,19 +75,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-modo-manual')?.addEventListener('click', () => {
     AppStorage.remove('sac_dados');
     atualizarPrevFornecedores();
-    engine.showCard('9-alt');
+    engine.showCard('10');
   });
 
   // Usado tanto na importação inicial (preenche os totais a partir do XLSX)
   // quanto depois, na tabela de veículos, pra manter as contagens
   // sincronizadas conforme o analista edita o status de cada placa.
   const idMapContagemVeiculos = {
-    total:     'veiculos-manutencao',
-    fs:        'veiculos-fs',
-    aprovacao: 'veiculos-aprovacao',
-    servico:   'veiculos-servico',
-    pecas:     'veiculos-pecas',
+    total:     'veiculos-total',
     orcamento: 'veiculos-orcamento',
+    aprovacao: 'veiculos-pendentes',
+    servico:   'veiculos-aprovados',
+    pecas:     'veiculos-aguardando',
+    fs:        'veiculos-FS',
   };
 
   inicializarImportSACVolume({
@@ -96,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     idMap: idMapContagemVeiculos,
     onImportado: (dados) => {
       atualizarPrevFornecedores();
+      // Mostra feedback no card-10b antes de navegar
       const statusEl = document.getElementById('import-sac-vol-status');
       if (statusEl) {
         statusEl.style.display = 'block';
@@ -104,18 +106,19 @@ document.addEventListener('DOMContentLoaded', () => {
         statusEl.style.color = '#1a5c30';
         statusEl.textContent = `✅ ${dados.total} veículos importados. Avançando...`;
       }
-      setTimeout(() => engine.showCard('16-alt'), 1200);
+      setTimeout(() => engine.showCard('17'), 1200);
     },
   });
 
   // Atualiza o Anterior do card de fornecedores dinamicamente
   function atualizarPrevFornecedores() {
-    const btn = document.getElementById('prev-btn-16-alt');
+    const btn = document.getElementById('prev-btn-17');
     if (!btn) return;
     const sacImportado = AppStorage.get('sac_dados');
-    btn.dataset.card = sacImportado ? '9b-alt' : '15-alt';
+    btn.dataset.card = sacImportado ? '10b' : '16';
   }
 
+  // Chama ao iniciar (caso a página recarregue com dados em sessão)
   atualizarPrevFornecedores();
 
   // ── Submit ────────────────────────────────────────────────
@@ -125,6 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const card = engine.currentCard();
 
+      // Modo SAC: valida tabela (serviço + comentário obrigatórios)
       const tabelaContainer = document.getElementById('tabela-improdutivos');
       const modoSAC = document.getElementById('modo-sac');
       if (modoSAC && modoSAC.style.display !== 'none' && tabelaContainer?._validarTodos) {
@@ -158,31 +162,43 @@ document.addEventListener('DOMContentLoaded', () => {
   function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
-    // Card 2: foto da fachada obrigatória apenas em visitas presenciais
-    if (cardId === '2') {
+    // Card 100: foto da fachada obrigatória apenas em visitas presenciais
+    if (cardId === '100') {
       if (isPresencial() && fotosManuais.fachada.length === 0) {
         alert('Por favor, adicione uma foto da fachada da oficina (obrigatória para visitas presenciais).');
         return false;
       }
     }
 
-    // Card 9-alt: se total = 0 pula direto para fornecedores
-    if (cardId === '9-alt') {
-      const total = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
+    // Card 10: se total = 0 pula direto para fornecedores (sem perguntar modo)
+    if (cardId === '10') {
+      const total = parseInt(document.getElementById('veiculos-total')?.value) || 0;
       if (total === 0) {
-        ['veiculos-fs','veiculos-aprovacao','veiculos-servico',
-         'veiculos-pecas','veiculos-orcamento','veiculos-entregues'].forEach(id => {
+        ['veiculos-orcamento','veiculos-pendentes','veiculos-aprovados',
+         'veiculos-aguardando','veiculos-FS','veiculos-entregues'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.value = '0';
         });
         AppStorage.remove('sac_dados');
-        engine.showCard('16-alt');
+        engine.showCard('17');
         return false;
       }
     }
 
-    if (cardId === '15-alt') {
-      const total     = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
+    if (cardId === '15') {
+      const ids  = ['veiculos-total','veiculos-orcamento','veiculos-pendentes','veiculos-aprovados','veiculos-aguardando','veiculos-FS'];
+      const vals = ids.map(id => parseInt(document.getElementById(id)?.value) || 0);
+      const soma = vals[1] + vals[2] + vals[3] + vals[4] + vals[5];
+      if (soma !== vals[0]) {
+        ids.forEach(id => document.getElementById(id)?.classList.add('error'));
+        alert(`A soma dos veículos (${soma}) não corresponde ao total (${vals[0]}).`);
+        return false;
+      }
+      ids.forEach(id => document.getElementById(id)?.classList.remove('error'));
+    }
+
+    if (cardId === '16') {
+      const total     = parseInt(document.getElementById('veiculos-total')?.value) || 0;
       const entregues = parseInt(document.getElementById('veiculos-entregues')?.value) || 0;
       if (entregues > total) {
         document.getElementById('veiculos-entregues')?.classList.add('error');
@@ -196,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function validacaoSimNaoEspecifica(card, cardId, resposta) {
     if (cardId === '4b') return false;
 
-    if (cardId === '16-alt' && resposta === 'Sim') {
+    if (cardId === '17' && resposta === 'Sim') {
       const qtd = card.querySelector('#necessidade-aumento-fornecedores');
       if (qtd && !qtd.value.trim()) {
         qtd.classList.add('error');
@@ -206,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
       qtd?.classList.remove('error');
     }
 
-    const comComentNao = ['5','6','7','8-alt'];
+    const comComentNao = ['5','6','7','8'];
     if (comComentNao.includes(cardId) && resposta === 'Nao') {
       const ta = card.querySelector('textarea');
       if (ta && !ta.value.trim()) {
@@ -217,10 +233,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ta) ta.classList.remove('error');
     }
 
-    if (cardId === '8-alt' && isProspeccao()) { engine.showCard('8-fim'); return false; }
+    if (cardId === '9' && isProspeccao()) { engine.showCard('9-fim'); return false; }
 
-    // Ao sair do card de fornecedores (16-alt), renderiza a tabela antes de mostrar card 17-alt
-    if (cardId === '16-alt') {
+    // Ao sair do card de fornecedores (17), renderiza a tabela antes de mostrar card 18
+    if (cardId === '17') {
       setTimeout(() => renderizarImprodutivos(), 50);
     }
   }
@@ -284,8 +300,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Scanner de placa (câmera dedicada, ao lado do campo) ──
-  // A foto tirada aqui é usada só para o OCR — não é salva como foto do veículo.
+  // A foto tirada aqui também é salva como foto do veículo (junto com as
+  // demais), mesmo que o OCR não consiga ler a placa — o analista não
+  // precisa tirar a mesma foto de novo depois.
   async function lerPlacaEPreencher(n, dados) {
+    salvarFotoManual(n, dados);
+
     const statusEl = document.getElementById(`ocr-status-${n}`);
     if (statusEl) statusEl.textContent = '🔎 Lendo a placa na foto…';
     const placa = await tentarLerPlaca(dados.base64, dados.mime);
@@ -333,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hidden) hidden.value = JSON.stringify(acoes);
   }
 
-  // ── Tabela de improdutivos (card 17-alt) ──────────────────
+  // ── Tabela de improdutivos (card 18) ──────────────────────
   function obterVeiculosParaTabela(dadosImportados) {
     // Se a tabela já foi preenchida antes (analista navegou pra outro card
     // e voltou), restaura o estado atual do hidden — senão TODOS os campos
