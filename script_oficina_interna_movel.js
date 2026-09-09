@@ -3,6 +3,12 @@
  * Depende de: form-utils.js, form-engine.js
  */
 
+// ── Configuração: permitir "Preenchimento Manual"? ──────────────
+// false = esconde o botão "Preenchimento Manual" na tela de escolha,
+// deixando só "Importar Placas do Portal" disponível. Pra reativar o modo
+// manual, é só voltar isso pra true — não precisa mexer em mais nada.
+const PERMITIR_MODO_MANUAL = false;
+
 document.addEventListener('DOMContentLoaded', () => {
   const form   = document.getElementById('agendamento-form');
   const engine = new FormEngine(form, {
@@ -10,6 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
     onBeforeSimNao: validacaoSimNaoEspecifica,
   });
   engine.init();
+
+  if (!PERMITIR_MODO_MANUAL) {
+    const btnManual = document.getElementById('btn-modo-manual');
+    if (btnManual) btnManual.style.display = 'none';
+  }
 
   // Popula os selects de "Ação" do modo manual com a mesma lista usada na
   // tabela SAC (ACOES_VEICULO, definida em form-utils.js) — evita manter a
