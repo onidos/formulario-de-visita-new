@@ -287,7 +287,7 @@ function validarCard(card) {
  * application/x-www-form-urlencoded (igual a um <form> normal), então o doPost
  * não precisa mudar nada em como lê e.parameter/e.parameters.
  */
-async function postFormulario(actionUrl, camposEntries, timeoutMs = 30000) {
+async function postFormulario(actionUrl, camposEntries, timeoutMs = 45000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -323,7 +323,7 @@ async function postFormulario(actionUrl, camposEntries, timeoutMs = 30000) {
 async function tentarReenviarBackup() {
   const dados = LocalBackup.obter();
   if (!dados) return null;
-  const resultado = await postFormulario(dados.actionUrl, dados.campos, 30000);
+  const resultado = await postFormulario(dados.actionUrl, dados.campos, 45000);
   if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();
   return resultado;
 }
@@ -348,7 +348,7 @@ async function enviarFormulario(form, btn) {
     envioId,
   }); // guarda ANTES de enviar — cobre queda de conexão, app fechado, etc.
 
-  const resultado = await postFormulario(form.action, campos, 30000);
+  const resultado = await postFormulario(form.action, campos, 45000);
 
   // Só apaga o backup quando temos confirmação real de que a planilha foi gravada.
   if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();
@@ -384,6 +384,42 @@ const MAPA_ETAPAS_CONTAGEM = {
   'Fora de Serviço': 'fs',
   'Erro Material':   'fs',
 };
+
+// Mesmo agrupamento de MAPA_ETAPAS_CONTAGEM, mas a partir do rótulo já
+// exibido no <select> de status da tabela (não do texto bruto do XLSX).
+// Usado para manter as contagens ("Quantidade de Veículos") sincronizadas
+// com o status que o analista está vendo/editando na tabela — a edição do
+// analista é mais confiável que o valor importado do arquivo.
+const MAPA_STATUS_CONTAGEM = {
+  'Pend. Orçamento':  'orcamento',
+  'Fora de Serviço':  'fs',
+  'Em Serviço':       'servico',
+  'Pend. Peça':       'pecas',
+  'Pend. Aprovação':  'aprovacao',
+  'Erro Material':    'fs',
+};
+
+/**
+ * Recalcula as contagens por categoria (orçamento/fs/serviço/peças/aprovação)
+ * a partir do status ATUAL de cada veículo na tabela, e atualiza os campos
+ * numéricos correspondentes (via idMap) — silenciosamente, sem alerta e sem
+ * exigir que o analista abra outra tela. "Total" e "Entregues no dia" não
+ * são tocados aqui: total é sempre a contagem de linhas da tabela (não muda
+ * por edição de status) e "entregues" é uma pergunta separada, não um status.
+ */
+function recalcularContagemPorStatus(estado, idMap) {
+  if (!idMap) return;
+  const contagem = { orcamento: 0, fs: 0, servico: 0, pecas: 0, aprovacao: 0 };
+  (estado || []).forEach(v => {
+    const campo = MAPA_STATUS_CONTAGEM[v.status];
+    if (campo && contagem[campo] !== undefined) contagem[campo]++;
+  });
+  Object.keys(contagem).forEach(campo => {
+    const id = idMap[campo];
+    const el = id && document.getElementById(id);
+    if (el) el.value = contagem[campo];
+  });
+}
 
 function mapearEtapaForm(etapa = '') {
   if (MAPA_ETAPAS_FORM[etapa]) return MAPA_ETAPAS_FORM[etapa];
@@ -538,7 +574,7 @@ const ACOES_VEICULO = [
  * @param {object[]} opts.veiculos      - lista de veículos processados
  * @param {boolean}  [opts.exigirFoto]  - se true, exige ao menos 1 foto por veículo
  */
-function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigirFoto = false }) {
+function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigirFoto = false, idMap = null }) {
   // Tipo de Serviço e Comentário sempre obrigatórios
   const container   = document.getElementById(containerId);
   const hiddenInput = document.getElementById(hiddenInputId);
@@ -671,6 +707,9 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
       el.addEventListener('change', () => {
         estado[parseInt(el.dataset.idx)][el.dataset.field] = el.value;
         salvarJSON();
+        // Status editado pelo analista prevalece sobre o valor importado do
+        // XLSX — atualiza os campos de contagem na hora, sem alerta.
+        if (el.dataset.field === 'status') recalcularContagemPorStatus(estado, idMap);
       });
       if (el.tagName === 'INPUT' && el.type === 'text') {
         el.addEventListener('input', () => {
@@ -731,6 +770,9 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
 
   renderizar();
   salvarJSON();
+  // Sincroniza a contagem já na abertura da tabela, usando o status real de
+  // cada veículo importado (em vez de confiar só no total bruto do XLSX).
+  recalcularContagemPorStatus(estado, idMap);
 }
 
 // ── Botão de importação SAC no card de volume ────────────────────────────────

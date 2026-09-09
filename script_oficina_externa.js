@@ -78,18 +78,23 @@ document.addEventListener('DOMContentLoaded', () => {
     engine.showCard('10');
   });
 
+  // Usado tanto na importação inicial (preenche os totais a partir do XLSX)
+  // quanto depois, na tabela de veículos, pra manter as contagens
+  // sincronizadas conforme o analista edita o status de cada placa.
+  const idMapContagemVeiculos = {
+    total:     'veiculos-total',
+    orcamento: 'veiculos-orcamento',
+    aprovacao: 'veiculos-pendentes',
+    servico:   'veiculos-aprovados',
+    pecas:     'veiculos-aguardando',
+    fs:        'veiculos-FS',
+  };
+
   inicializarImportSACVolume({
     btnId:    'btn-import-sac-vol',
     inputId:  'input-import-sac-vol',
     statusId: 'import-sac-vol-status',
-    idMap: {
-      total:     'veiculos-total',
-      orcamento: 'veiculos-orcamento',
-      aprovacao: 'veiculos-pendentes',
-      servico:   'veiculos-aprovados',
-      pecas:     'veiculos-aguardando',
-      fs:        'veiculos-FS',
-    },
+    idMap: idMapContagemVeiculos,
     onImportado: (dados) => {
       atualizarPrevFornecedores();
       // Mostra feedback no card-10b antes de navegar
@@ -365,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hiddenInputId: 'veiculos-json',
         veiculos:      dados.veiculos,
         exigirFoto:    isPresencial(),
+        idMap:         idMapContagemVeiculos,
       });
     } else {
       if (modoSAC)    modoSAC.style.display    = 'none';
