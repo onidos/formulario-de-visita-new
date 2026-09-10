@@ -158,9 +158,10 @@ const RascunhoVisita = {
 /**
  * Lê todos os campos NOMEADOS (input/select/textarea com atributo name) de
  * um form num objeto simples {name: value}. Cobre texto, número, data,
- * select, textarea, checkbox/radio (só se marcado) e campos hidden — ou
- * seja, cobre também os JSONs escondidos (veículos, fotos, ações), já que
- * eles são só inputs hidden com name como qualquer outro.
+ * select simples, select múltiplo (array de valores), textarea,
+ * checkbox/radio (só se marcado) e campos hidden — ou seja, cobre também os
+ * JSONs escondidos (veículos, fotos, ações), já que eles são só inputs
+ * hidden com name como qualquer outro.
  */
 function coletarValoresForm(form) {
   const valores = {};
@@ -168,6 +169,13 @@ function coletarValoresForm(form) {
     if (el.type === 'file' || el.type === 'button' || el.type === 'submit') return;
     if (el.type === 'checkbox' || el.type === 'radio') {
       if (el.checked) valores[el.name] = el.value;
+      return;
+    }
+    // <select multiple> (Tipo de Serviço, Modalidade, Motivo da Visita): o
+    // analista escolhe VÁRIAS opções no mesmo campo. Ler só ".value" pega
+    // apenas a primeira selecionada — precisa das opções marcadas todas.
+    if (el.tagName === 'SELECT' && el.multiple) {
+      valores[el.name] = Array.from(el.selectedOptions).map(o => o.value);
       return;
     }
     valores[el.name] = el.value;
@@ -181,10 +189,14 @@ function restaurarValoresForm(form, valores) {
   Object.keys(valores).forEach(name => {
     const el = form.querySelector(`[name="${CSS.escape(name)}"]`);
     if (!el) return;
+    const valor = valores[name];
     if (el.type === 'checkbox' || el.type === 'radio') {
-      el.checked = (el.value === valores[name]);
+      el.checked = (el.value === valor);
+    } else if (el.tagName === 'SELECT' && el.multiple) {
+      const selecionados = Array.isArray(valor) ? valor : [valor];
+      Array.from(el.options).forEach(opt => { opt.selected = selecionados.includes(opt.value); });
     } else {
-      el.value = valores[name];
+      el.value = valor;
     }
   });
 }
