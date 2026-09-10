@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const engine = new FormEngine(form, {
     onBeforeNext:   validacaoEspecifica,
     onBeforeSimNao: validacaoSimNaoEspecifica,
+    onCardChange:   (cardId) => salvarRascunho(cardId),
   });
   engine.init();
 
@@ -282,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
         atualizarHiddenFotos(n);
         renderizarFotosManuais(n);
         atualizarBotoesFoto(n);
+        salvarRascunho(cardIdAtual());
       });
     });
     atualizarBotoesFoto(n);
@@ -306,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fotosManuais[n].push(dados);
     atualizarHiddenFotos(n);
     renderizarFotosManuais(n);
+    salvarRascunho(cardIdAtual());
   }
   const erroFotoManual = (msg) => alert('Erro ao processar a foto: ' + msg);
 
@@ -409,6 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         veiculos:      obterVeiculosParaTabela(dados),
         exigirFoto:    isPresencial(),
         idMap:         idMapContagemVeiculos,
+        onChange:      () => salvarRascunho('18'),
       });
     } else {
       if (modoSAC)    modoSAC.style.display    = 'none';
@@ -444,4 +448,74 @@ document.addEventListener('DOMContentLoaded', () => {
   function isPresencial() {
     return document.getElementById('presencial-telefone')?.value === 'Presencial';
   }
+
+  function cardIdAtual() {
+    return engine.currentCard()?.id.replace('card-', '') || '';
+  }
+
+  // ============================================================
+  //  Rascunho automático — protege contra tela travando, app indo pra
+  //  segundo plano por muito tempo, ou voltar sem querer no celular.
+  //  Salva a cada troca de card e a cada foto adicionada; restaura sozinho
+  //  na abertura da página, se achar um rascunho da mesma oficina com
+  //  menos de 24h.
+  // ============================================================
+  function salvarRascunho(cardId) {
+    RascunhoVisita.salvar({
+      tipoOficina: AppStorage.get('tipo_oficina') || '',
+      cardAtual:   cardId,
+      valores:     coletarValoresForm(form),
+    });
+  }
+
+  function mostrarAvisoRascunhoRestaurado() {
+    const aviso = document.createElement('div');
+    aviso.textContent = '✅ Seu progresso anterior foi restaurado automaticamente.';
+    aviso.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#0051AA;color:#fff;padding:10px 18px;border-radius:8px;font-size:.85rem;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:92%;text-align:center;';
+    document.body.appendChild(aviso);
+    setTimeout(() => aviso.remove(), 5000);
+  }
+
+  function restaurarRascunhoSeExistir() {
+    const tipoOficina = AppStorage.get('tipo_oficina') || '';
+    const rascunho = RascunhoVisita.obter(tipoOficina);
+    if (!rascunho || !rascunho.valores) return;
+
+    restaurarValoresForm(form, rascunho.valores);
+
+    // Reconstrói fotosManuais (1/2/3/fachada) a partir dos hidden
+    // restaurados, pra manter as miniaturas e os próximos "adicionar foto"
+    // consistentes com o que já tinha sido salvo.
+    ['1', '2', '3', 'fachada'].forEach(n => {
+      const nomeCampo = n === 'fachada' ? 'fotosfachada' : `fotos${n}`;
+      const hidden = form.querySelector(`[name="${nomeCampo}"]`);
+      if (!hidden || !hidden.value) return;
+      try {
+        const lista = JSON.parse(hidden.value);
+        if (Array.isArray(lista) && lista.length) {
+          fotosManuais[n] = lista;
+          renderizarFotosManuais(n);
+        }
+      } catch (err) {}
+    });
+
+    // Se havia uma tabela SAC preenchida, garante que "sac_dados" também
+    // reflita isso — renderizarImprodutivos() usa esse dado (sessionStorage)
+    // pra decidir se mostra a tabela, e ele pode não ter sobrevivido à mesma
+    // interrupção que este rascunho (localStorage) está protegendo.
+    const veiculosJsonRestaurado = rascunho.valores['entry.veiculos_json'];
+    if (veiculosJsonRestaurado && !AppStorage.get('sac_dados')) {
+      try {
+        const veiculos = JSON.parse(veiculosJsonRestaurado);
+        if (Array.isArray(veiculos) && veiculos.length) AppStorage.set('sac_dados', { veiculos });
+      } catch (err) {}
+    }
+
+    engine.showCard(rascunho.cardAtual);
+    if (rascunho.cardAtual === '18') renderizarImprodutivos();
+
+    mostrarAvisoRascunhoRestaurado();
+  }
+
+  restaurarRascunhoSeExistir();
 });

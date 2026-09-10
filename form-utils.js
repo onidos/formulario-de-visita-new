@@ -114,6 +114,81 @@ const LocalBackup = {
   },
 };
 
+// ============================================================
+//  Rascunho automático — salva o progresso do preenchimento (campos +
+//  fotos + em qual card o analista está) continuamente, ANTES do envio
+//  final. Diferente do LocalBackup (que só existe depois de uma tentativa
+//  de envio que falhou), o rascunho existe desde o início do preenchimento,
+//  pra não perder nada se a tela travar, o app for pra segundo plano por
+//  muito tempo, ou o analista voltar sem querer no botão do celular.
+// ============================================================
+const RascunhoVisita = {
+  KEY: 'unidas_rascunho_visita_v1',
+  IDADE_MAXIMA_MS: 24 * 60 * 60 * 1000, // 24h — depois disso, ignora e descarta
+
+  salvar({ tipoOficina, cardAtual, valores }) {
+    try {
+      const dados = { tipoOficina, cardAtual, valores, salvoEm: new Date().toISOString() };
+      localStorage.setItem(this.KEY, JSON.stringify(dados));
+    } catch (err) {
+      // Provável estouro de cota do localStorage (muitas fotos grandes).
+      // Autosave é best-effort — não pode quebrar o preenchimento por isso.
+      console.warn('Falha ao salvar rascunho automático:', err);
+    }
+  },
+
+  /** Só retorna o rascunho se for da MESMA oficina e não estiver expirado. */
+  obter(tipoOficina) {
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      if (!raw) return null;
+      const dados = JSON.parse(raw);
+      if (!dados || dados.tipoOficina !== tipoOficina) return null;
+      const idade = Date.now() - new Date(dados.salvoEm).getTime();
+      if (idade > this.IDADE_MAXIMA_MS) { this.limpar(); return null; }
+      return dados;
+    } catch (err) { return null; }
+  },
+
+  limpar() {
+    try { localStorage.removeItem(this.KEY); } catch (err) {}
+  },
+};
+
+/**
+ * Lê todos os campos NOMEADOS (input/select/textarea com atributo name) de
+ * um form num objeto simples {name: value}. Cobre texto, número, data,
+ * select, textarea, checkbox/radio (só se marcado) e campos hidden — ou
+ * seja, cobre também os JSONs escondidos (veículos, fotos, ações), já que
+ * eles são só inputs hidden com name como qualquer outro.
+ */
+function coletarValoresForm(form) {
+  const valores = {};
+  form.querySelectorAll('input[name], select[name], textarea[name]').forEach(el => {
+    if (el.type === 'file' || el.type === 'button' || el.type === 'submit') return;
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      if (el.checked) valores[el.name] = el.value;
+      return;
+    }
+    valores[el.name] = el.value;
+  });
+  return valores;
+}
+
+/** Reaplica valores salvos de volta nos campos do form (restauração de rascunho). */
+function restaurarValoresForm(form, valores) {
+  if (!valores) return;
+  Object.keys(valores).forEach(name => {
+    const el = form.querySelector(`[name="${CSS.escape(name)}"]`);
+    if (!el) return;
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      el.checked = (el.value === valores[name]);
+    } else {
+      el.value = valores[name];
+    }
+  });
+}
+
 function gerarEnvioId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2);
@@ -324,7 +399,7 @@ async function tentarReenviarBackup() {
   const dados = LocalBackup.obter();
   if (!dados) return null;
   const resultado = await postFormulario(dados.actionUrl, dados.campos, 45000);
-  if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();
+  if (resultado.confirmado && resultado.planilha === 'ok') { LocalBackup.limpar(); RascunhoVisita.limpar(); }
   return resultado;
 }
 
@@ -351,7 +426,7 @@ async function enviarFormulario(form, btn) {
   const resultado = await postFormulario(form.action, campos, 45000);
 
   // Só apaga o backup quando temos confirmação real de que a planilha foi gravada.
-  if (resultado.confirmado && resultado.planilha === 'ok') LocalBackup.limpar();
+  if (resultado.confirmado && resultado.planilha === 'ok') { LocalBackup.limpar(); RascunhoVisita.limpar(); }
 
   AppStorage.set('submit_result', resultado);
   window.location.href = 'sucesso.html';
@@ -582,7 +657,7 @@ const ACOES_VEICULO = [
  * @param {object[]} opts.veiculos      - lista de veículos processados
  * @param {boolean}  [opts.exigirFoto]  - se true, exige ao menos 1 foto por veículo (exceto Fora de Serviço)
  */
-function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigirFoto = false, idMap = null }) {
+function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigirFoto = false, idMap = null, onChange = null }) {
   // Status, Ação e (condicionalmente) Foto são obrigatórios — Observação é livre
   const container   = document.getElementById(containerId);
   const hiddenInput = document.getElementById(hiddenInputId);
@@ -609,6 +684,9 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
       acao:    v.acao || '',
       fotos:   (v.fotos || []).map(f => ({ base64: f.base64, mime: f.mime, nome: f.nome })),
     })));
+    // Avisa quem chamou (ex: autosave de rascunho) que algo mudou —
+    // roda em toda edição de campo E em toda foto adicionada/removida.
+    onChange?.();
   }
 
   function renderizar() {
