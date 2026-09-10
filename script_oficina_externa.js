@@ -420,16 +420,24 @@ document.addEventListener('DOMContentLoaded', () => {
       if (modoSAC)    modoSAC.style.display    = 'block';
       if (modoManual) modoManual.style.display  = 'none';
 
+      const veiculosParaTabela = obterVeiculosParaTabela(dados);
+      const totalVeiculos = veiculosParaTabela.length;
+      // Com mais de 25 placas, foto por veículo deixa de ser obrigatória —
+      // só a foto da fachada continua exigida em visita presencial.
+      const fotoObrigatoriaPorVeiculo = isPresencial() && totalVeiculos <= 25;
+
       if (aviso) {
-        aviso.textContent = '⚠️ Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Foto é obrigatória em visitas presenciais, exceto para veículos "Fora de Serviço".';
+        aviso.textContent = totalVeiculos > 25
+          ? '⚠️ Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Com mais de 25 placas, a foto por veículo NÃO é obrigatória — só a foto da fachada continua exigida.'
+          : '⚠️ Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Foto é obrigatória em visitas presenciais, exceto para veículos "Fora de Serviço".';
         aviso.style.display = 'block';
       }
 
       inicializarTabelaVeiculos({
         containerId:   'tabela-improdutivos',
         hiddenInputId: 'veiculos-json',
-        veiculos:      obterVeiculosParaTabela(dados),
-        exigirFoto:    isPresencial(),
+        veiculos:      veiculosParaTabela,
+        exigirFoto:    fotoObrigatoriaPorVeiculo,
         idMap:         idMapContagemVeiculos,
         onChange:      () => salvarRascunho('18'),
       });
