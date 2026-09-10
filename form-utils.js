@@ -647,6 +647,8 @@ const MAX_FOTOS_POR_VEICULO = 3; // usado no modo manual (sempre ≤3 veículos)
 
 const ACOES_VEICULO = [
   'Aguardando entrega da peça',
+  'Aguardando parada cliente Fleet/Livre/LP',
+  'Aguardando retorno cliente Fleet/Livre/LP',
   'Carro pronto para retirada (Fleet e Livre)',
   'Carro pronto, orientado devolução em loja',
   'Cobrado celeridade na finalização do serviço',
@@ -660,6 +662,22 @@ const ACOES_VEICULO = [
   'Sem agendamento Fleet/Livre',
   'Solicitado redirecionamento guincho',
 ];
+
+// Algumas ações só fazem sentido pra um status específico da placa — fora
+// disso, nem aparecem como opção. Ações que não estão aqui ficam sempre
+// disponíveis, independente do status.
+const ACOES_RESTRITAS_POR_STATUS = {
+  'Aguardando parada cliente Fleet/Livre/LP': 'Fora de Serviço',
+  'Aguardando retorno cliente Fleet/Livre/LP': 'Em Serviço',
+};
+
+/** Lista de ações permitidas pro status atual (filtra as restritas de outros status). */
+function acoesDisponiveisParaStatus(status) {
+  return ACOES_VEICULO.filter(a => {
+    const statusExigido = ACOES_RESTRITAS_POR_STATUS[a];
+    return !statusExigido || statusExigido === status;
+  });
+}
 
 /**
  * Renderiza a lista paginada de veículos no container indicado.
@@ -763,7 +781,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
                   <select data-idx="${idx}" data-field="acao"
                     style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:200px;box-sizing:border-box;background:#fff;">
                     <option value="">— Selecione —</option>
-                    ${ACOES_VEICULO.map(a => `<option value="${a}" ${v.acao === a ? 'selected' : ''}>${a}</option>`).join('')}
+                    ${acoesDisponiveisParaStatus(v.status).map(a => `<option value="${a}" ${v.acao === a ? 'selected' : ''}>${a}</option>`).join('')}
                   </select>
                 </td>
                 <td style="${estiloTd}text-align:center;min-width:120px;">
@@ -807,11 +825,27 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
     // Eventos de edição
     container.querySelectorAll('[data-field]').forEach(el => {
       el.addEventListener('change', () => {
-        estado[parseInt(el.dataset.idx)][el.dataset.field] = el.value;
+        const idx = parseInt(el.dataset.idx);
+        estado[idx][el.dataset.field] = el.value;
+
+        if (el.dataset.field === 'status') {
+          // Status editado pelo analista prevalece sobre o valor importado
+          // do XLSX — atualiza os campos de contagem na hora, sem alerta.
+          recalcularContagemPorStatus(estado, idMap);
+
+          // Algumas ações só valem pra um status específico — se a ação já
+          // escolhida não vale mais pro novo status, limpa (senão ficaria
+          // "escondida": invisível na lista, mas ainda salva por baixo).
+          const acaoAtual = estado[idx].acao;
+          const statusExigido = ACOES_RESTRITAS_POR_STATUS[acaoAtual];
+          if (statusExigido && statusExigido !== estado[idx].status) estado[idx].acao = '';
+
+          salvarJSON();
+          renderizar(); // reconstrói as opções de Ação disponíveis pro novo status
+          return;
+        }
+
         salvarJSON();
-        // Status editado pelo analista prevalece sobre o valor importado do
-        // XLSX — atualiza os campos de contagem na hora, sem alerta.
-        if (el.dataset.field === 'status') recalcularContagemPorStatus(estado, idMap);
       });
       if (el.tagName === 'INPUT' && el.type === 'text') {
         el.addEventListener('input', () => {

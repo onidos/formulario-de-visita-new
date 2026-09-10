@@ -23,18 +23,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnManual) btnManual.style.display = 'none';
   }
 
-  // Popula os selects de "Ação" do modo manual com a mesma lista usada na
-  // tabela SAC (ACOES_VEICULO, definida em form-utils.js) — evita manter a
-  // lista duplicada em vários lugares.
-  [1, 2, 3].forEach(n => {
+  // Popula os selects de "Ação" do modo manual com a lista permitida pro
+  // status atual daquele veículo (mesma regra da tabela SAC — algumas ações
+  // só valem pra um status específico, ex: "Fora de Serviço").
+  function popularAcoesManual(n, manterSelecionado) {
     const sel = document.getElementById(`acao${n}`);
+    const statusSel = form.querySelector(`[name="status${n}"]`);
     if (!sel) return;
-    ACOES_VEICULO.forEach(a => {
+    const statusAtual = statusSel?.value || '';
+    const valorAnterior = manterSelecionado ? sel.value : '';
+
+    sel.innerHTML = '';
+    const optVazia = document.createElement('option');
+    optVazia.value = '';
+    optVazia.textContent = 'Selecione';
+    sel.appendChild(optVazia);
+
+    acoesDisponiveisParaStatus(statusAtual).forEach(a => {
       const opt = document.createElement('option');
       opt.value = a;
       opt.textContent = a;
       sel.appendChild(opt);
     });
+
+    // Só mantém a seleção anterior se ela ainda for uma opção válida pro
+    // status atual — senão volta pra "Selecione" (evita ação escondida).
+    sel.value = Array.from(sel.options).some(o => o.value === valorAnterior) ? valorAnterior : '';
+  }
+
+  [1, 2, 3].forEach(n => {
+    popularAcoesManual(n, false);
+    form.querySelector(`[name="status${n}"]`)?.addEventListener('change', () => popularAcoesManual(n, true));
   });
 
   preencherDataHora(
