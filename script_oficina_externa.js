@@ -135,7 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
         statusEl.style.background = '#f0faf4';
         statusEl.style.border = '1px solid #a3d9b1';
         statusEl.style.color = '#1a5c30';
-        statusEl.textContent = `✅ ${dados.total} veículos importados. Avançando...`;
+        statusEl.textContent = dados.duplicatasRemovidas > 0
+          ? `✅ ${dados.total} veículos importados (${dados.duplicatasRemovidas} placa(s) duplicada(s) no arquivo foram ignoradas). Avançando...`
+          : `✅ ${dados.total} veículos importados. Avançando...`;
       }
       setTimeout(() => engine.showCard('17'), 1200);
     },

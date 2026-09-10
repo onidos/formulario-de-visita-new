@@ -577,7 +577,7 @@ function processarArquivoSAC(file, { onSuccess, onError }) {
       });
 
       // Montar lista de veículos processados
-      const veiculos = ordenados.map(row => ({
+      const veiculosComDuplicatas = ordenados.map(row => ({
         placa:    String(row['Placa'] || '').trim(),
         veiculo:  String(row['Veículo'] || '').trim(),
         entrega:  formatarDataParaInput(String(row['Previsão Entrega'] || '')),
@@ -585,6 +585,19 @@ function processarArquivoSAC(file, { onSuccess, onError }) {
         status:   mapearEtapaForm(String(row['Etapas do Processo'] || '')),
         parada:   String(row['Parada Veículo'] || '-').trim(),
       }));
+
+      // Remove placas duplicadas do arquivo — mantém só a primeira ocorrência
+      // de cada placa (a lista já está ordenada pela mais antiga/mais
+      // improdutiva primeiro), pra não aparecer 2 linhas da mesma placa na
+      // tela final. Não deveria acontecer, mas o arquivo pode vir com erro.
+      const placasVistas = new Set();
+      const veiculos = veiculosComDuplicatas.filter(v => {
+        const chave = v.placa.trim().toUpperCase();
+        if (!chave || placasVistas.has(chave)) return false;
+        placasVistas.add(chave);
+        return true;
+      });
+      const duplicatasRemovidas = veiculosComDuplicatas.length - veiculos.length;
 
       // Contagens por status
       const contagem = { total: veiculos.length, orcamento: 0, fs: 0, servico: 0, pecas: 0, aprovacao: 0, outros: 0 };
@@ -601,7 +614,7 @@ function processarArquivoSAC(file, { onSuccess, onError }) {
         entrega: v.entrega,
       })));
 
-      const dadosSAC = { veiculos, contagem, jsonPlanilha, total: veiculos.length };
+      const dadosSAC = { veiculos, contagem, jsonPlanilha, total: veiculos.length, duplicatasRemovidas };
 
       // Persiste para uso no card de improdutivos
       AppStorage.set('sac_dados', dadosSAC);
