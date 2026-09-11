@@ -752,7 +752,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
           <thead>
             <tr>
               <th style="${estiloTh}width:28px;">#</th>
-              <th style="${estiloTh}white-space:nowrap;">Placa</th>
+              <th style="${estiloTh}white-space:nowrap;">Placa <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}">Status <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}">Entrega <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}">Observação</th>
@@ -772,7 +772,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
                     <div style="display:flex;align-items:center;gap:4px;">
                       <input type="text" data-idx="${idx}" data-field="placa"
                         value="${(v.placa || '').replace(/"/g, '&quot;')}" placeholder="AAA-0000"
-                        style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:100px;box-sizing:border-box;text-transform:uppercase;">
+                        style="font-size:.78rem;padding:4px 6px;border:1px solid ${v.placa && !placaValida(v.placa) ? '#c0392b' : '#ccc'};border-radius:5px;width:100%;min-width:100px;box-sizing:border-box;text-transform:uppercase;background:${v.placa && !placaValida(v.placa) ? '#fff5f5' : '#fff'};">
                       <button type="button" class="scan-placa-tabela-btn" data-idx="${idx}" title="Escanear placa pela câmera"
                         style="border:none;border-radius:5px;padding:5px 7px;cursor:pointer;font-size:.85rem;background:#f0f0f0;flex-shrink:0;">📷</button>
                     </div>
@@ -876,6 +876,13 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
         el.addEventListener('input', () => {
           estado[parseInt(el.dataset.idx)][el.dataset.field] = el.value;
           salvarJSON();
+          // Placa: avisa na hora se o formato não bate com nenhum padrão
+          // brasileiro válido (evita texto aleatório digitado por engano).
+          if (el.dataset.field === 'placa') {
+            const preenchida = el.value.trim().length > 0;
+            el.style.borderColor = (preenchida && !placaValida(el.value)) ? '#c0392b' : '#ccc';
+            el.style.background  = (preenchida && !placaValida(el.value)) ? '#fff5f5' : '#fff';
+          }
         });
       }
     });
@@ -945,13 +952,14 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
     estado.forEach((v, idx) => {
       const rotulo = v.placa ? v.placa : `#${idx + 1}`;
       if (placaEditavel && !v.placa) { erros.push(`Veículo ${idx+1}: Placa obrigatória.`); valido = false; }
+      else if (placaEditavel && v.placa && !placaValida(v.placa)) { erros.push(`Veículo ${idx+1}: Placa "${v.placa}" não parece válida (formato esperado: AAA-0000 ou AAA0A00).`); valido = false; }
       if (!v.status) { erros.push(`Veículo ${idx+1} (${rotulo}): Status obrigatório.`); valido = false; }
       if (!v.entrega) { erros.push(`Veículo ${idx+1} (${rotulo}): Dt. Prev. Entrega obrigatória.`); valido = false; }
       if (!v.acao) { erros.push(`Veículo ${idx+1} (${rotulo}): Ação obrigatória.`); valido = false; }
       if (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)) { erros.push(`Veículo ${idx+1} (${rotulo}): Foto obrigatória.`); valido = false; }
     });
     if (!valido) {
-      const idxErro = estado.findIndex(v => (placaEditavel && !v.placa) || !v.status || !v.entrega || !v.acao || (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)));
+      const idxErro = estado.findIndex(v => (placaEditavel && (!v.placa || !placaValida(v.placa))) || !v.status || !v.entrega || !v.acao || (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)));
       if (idxErro >= 0) { paginaAtual = Math.floor(idxErro / POR_PAGINA); renderizar(); }
       alert('Corrija os campos antes de enviar:\n\n' + erros.slice(0,3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length-3} erro(s).` : ''));
     }
@@ -1093,6 +1101,18 @@ async function tentarLerPlaca(base64, mime) {
   } finally {
     if (worker) { try { await worker.terminate(); } catch (_) {} }
   }
+}
+
+/**
+ * Confere se um texto É (inteiramente) uma placa brasileira válida — padrão
+ * antigo (AAA9999) ou Mercosul (AAA9A99), com ou sem traço. Diferente de
+ * extrairPlacaDoTexto() (que procura um trecho dentro de um texto maior,
+ * usado no OCR), esta valida o campo inteiro — pra pegar texto aleatório
+ * digitado por engano (ex: "1651", "48", "5").
+ */
+function placaValida(placa) {
+  const limpo = String(placa || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return /^[A-Z]{3}\d[A-Z]\d{2}$/.test(limpo) || /^[A-Z]{3}\d{4}$/.test(limpo);
 }
 
 /**
