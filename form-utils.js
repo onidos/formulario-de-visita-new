@@ -584,6 +584,7 @@ function processarArquivoSAC(file, { onSuccess, onError }) {
         etapaOriginal: String(row['Etapas do Processo'] || '').trim(),
         status:   mapearEtapaForm(String(row['Etapas do Processo'] || '')),
         parada:   String(row['Parada Veículo'] || '-').trim(),
+        origem:   'Planilha',
       }));
 
       // Remove placas duplicadas do arquivo — mantém só a primeira ocorrência
@@ -725,6 +726,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
       entrega: v.entrega,
       observacao: v.observacao || '',
       acao:    v.acao || '',
+      origem:  v.origem || 'Planilha',
       fotos:   (v.fotos || []).map(f => ({ base64: f.base64, mime: f.mime, nome: f.nome })),
     })));
     // Avisa quem chamou (ex: autosave de rascunho) que algo mudou —
