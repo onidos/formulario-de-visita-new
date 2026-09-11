@@ -700,7 +700,7 @@ function acoesDisponiveisParaStatus(status) {
  * @param {object[]} opts.veiculos      - lista de veículos processados
  * @param {boolean}  [opts.exigirFoto]  - se true, exige ao menos 1 foto por veículo (exceto Fora de Serviço)
  */
-function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigirFoto = false, idMap = null, onChange = null }) {
+function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigirFoto = false, idMap = null, onChange = null, placaEditavel = false }) {
   // Status, Ação e (condicionalmente) Foto são obrigatórios — Observação é livre
   const container   = document.getElementById(containerId);
   const hiddenInput = document.getElementById(hiddenInputId);
@@ -766,11 +766,21 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
               <tr style="background:${bg};">
                 <td style="${estiloTd}color:#999;text-align:center;">${idx + 1}</td>
                 <td style="${estiloTd}font-weight:700;white-space:nowrap;">
-                  ${v.placa}
-                  ${(v.fotos || []).length < limiteFotos ? `
-                    <button type="button" class="foto-placa-btn" data-idx="${idx}" title="Tirar foto da placa"
-                      style="border:none;border-radius:5px;padding:2px 5px;cursor:pointer;font-size:.78rem;background:#f0f0f0;margin-left:4px;">📷</button>
-                  ` : ''}
+                  ${placaEditavel ? `
+                    <div style="display:flex;align-items:center;gap:4px;">
+                      <input type="text" data-idx="${idx}" data-field="placa"
+                        value="${(v.placa || '').replace(/"/g, '&quot;')}" placeholder="AAA-0000"
+                        style="font-size:.78rem;padding:4px 6px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:100px;box-sizing:border-box;text-transform:uppercase;">
+                      <button type="button" class="scan-placa-tabela-btn" data-idx="${idx}" title="Escanear placa pela câmera"
+                        style="border:none;border-radius:5px;padding:5px 7px;cursor:pointer;font-size:.85rem;background:#f0f0f0;flex-shrink:0;">📷</button>
+                    </div>
+                  ` : `
+                    ${v.placa}
+                    ${(v.fotos || []).length < limiteFotos ? `
+                      <button type="button" class="foto-placa-btn" data-idx="${idx}" title="Tirar foto da placa"
+                        style="border:none;border-radius:5px;padding:2px 5px;cursor:pointer;font-size:.78rem;background:#f0f0f0;margin-left:4px;">📷</button>
+                    ` : ''}
+                  `}
                 </td>
                 <td style="${estiloTd}">
                   <select data-idx="${idx}" data-field="status"
@@ -891,6 +901,24 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
     container.querySelectorAll('.foto-placa-btn').forEach(btn => {
       ativarCapturaFoto(btn, (dados) => adicionarFotoIdx(parseInt(btn.dataset.idx), dados), erroFoto, { capture: 'environment' });
     });
+    // Botão de câmera + OCR junto da placa (modo manual: a placa ainda não
+    // é conhecida, então tenta ler pela foto e preencher o campo sozinho).
+    // A foto é salva de qualquer forma, mesmo que o OCR não consiga ler.
+    container.querySelectorAll('.scan-placa-tabela-btn').forEach(btn => {
+      ativarCapturaFoto(btn, async (dados) => {
+        const idx = parseInt(btn.dataset.idx);
+        estado[idx].fotos = estado[idx].fotos || [];
+        if (estado[idx].fotos.length < limiteFotos) estado[idx].fotos.push(dados);
+
+        const placaLida = await tentarLerPlaca(dados.base64, dados.mime);
+        if (placaLida) estado[idx].placa = placaLida;
+
+        salvarJSON();
+        renderizar();
+
+        if (!placaLida) alert('Não foi possível ler a placa automaticamente. Digite a placa manualmente no campo.');
+      }, erroFoto, { capture: 'environment' });
+    });
     container.querySelectorAll('.foto-remover-item-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.idx);
@@ -913,13 +941,15 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
     // não faz sentido exigir foto dele.
     const precisaFoto = v => exigirFoto && v.status !== 'Fora de Serviço';
     estado.forEach((v, idx) => {
-      if (!v.status) { erros.push(`Veículo ${idx+1} (${v.placa}): Status obrigatório.`); valido = false; }
-      if (!v.entrega) { erros.push(`Veículo ${idx+1} (${v.placa}): Dt. Prev. Entrega obrigatória.`); valido = false; }
-      if (!v.acao) { erros.push(`Veículo ${idx+1} (${v.placa}): Ação obrigatória.`); valido = false; }
-      if (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)) { erros.push(`Veículo ${idx+1} (${v.placa}): Foto obrigatória.`); valido = false; }
+      const rotulo = v.placa ? v.placa : `#${idx + 1}`;
+      if (placaEditavel && !v.placa) { erros.push(`Veículo ${idx+1}: Placa obrigatória.`); valido = false; }
+      if (!v.status) { erros.push(`Veículo ${idx+1} (${rotulo}): Status obrigatório.`); valido = false; }
+      if (!v.entrega) { erros.push(`Veículo ${idx+1} (${rotulo}): Dt. Prev. Entrega obrigatória.`); valido = false; }
+      if (!v.acao) { erros.push(`Veículo ${idx+1} (${rotulo}): Ação obrigatória.`); valido = false; }
+      if (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)) { erros.push(`Veículo ${idx+1} (${rotulo}): Foto obrigatória.`); valido = false; }
     });
     if (!valido) {
-      const idxErro = estado.findIndex(v => !v.status || !v.entrega || !v.acao || (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)));
+      const idxErro = estado.findIndex(v => (placaEditavel && !v.placa) || !v.status || !v.entrega || !v.acao || (precisaFoto(v) && (!v.fotos || v.fotos.length === 0)));
       if (idxErro >= 0) { paginaAtual = Math.floor(idxErro / POR_PAGINA); renderizar(); }
       alert('Corrija os campos antes de enviar:\n\n' + erros.slice(0,3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length-3} erro(s).` : ''));
     }

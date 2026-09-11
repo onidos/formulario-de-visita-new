@@ -103,9 +103,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-modo-manual')?.addEventListener('click', () => {
-    AppStorage.remove('sac_dados');
+    const totalInput = document.getElementById('veiculos-manutencao');
+    const total = parseInt(totalInput?.value, 10);
+    if (!total || total < 1) {
+      alert('Preencha a quantidade total de veículos em manutenção antes de continuar.');
+      totalInput?.focus();
+      return;
+    }
+
+    // Gera N linhas em branco (N = total informado) e reaproveita a MESMA
+    // tabela/tela da importação — só que com a placa digitável e leitor de
+    // OCR, em vez de vir pronta de um arquivo.
+    const veiculosVazios = Array.from({ length: total }, () => ({
+      origem: 'Manual', placa: '', status: '', entrega: '', observacao: '', acao: '', fotos: [],
+    }));
+    AppStorage.set('sac_dados', { veiculos: veiculosVazios, manual: true });
+
     atualizarPrevFornecedores();
-    engine.showCard('9-alt');
+    engine.showCard('16-alt');
   });
 
   // Usado tanto na importação inicial (preenche os totais a partir do XLSX)
@@ -414,8 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (aviso) {
         aviso.textContent = totalVeiculos > 25
-          ? '⚠️ Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Com mais de 25 placas, a foto por veículo NÃO é obrigatória — só a foto da fachada continua exigida.'
-          : '⚠️ Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Foto é obrigatória em visitas presenciais, exceto para veículos "Fora de Serviço".';
+          ? '⚠️ Placa, Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Com mais de 25 placas, a foto por veículo NÃO é obrigatória — só a foto da fachada continua exigida.'
+          : '⚠️ Placa, Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Foto é obrigatória em visitas presenciais, exceto para veículos "Fora de Serviço".';
         aviso.style.display = 'block';
       }
 
@@ -425,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
         veiculos:      veiculosParaTabela,
         exigirFoto:    fotoObrigatoriaPorVeiculo,
         idMap:         idMapContagemVeiculos,
+        placaEditavel: !!dados.manual,
         onChange:      () => salvarRascunho('17-alt'),
       });
     } else {
