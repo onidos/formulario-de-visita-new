@@ -100,28 +100,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Card 10b: escolha de modo (importar ou manual) ───────
   document.getElementById('btn-modo-importar')?.addEventListener('click', () => {
+    AppStorage.remove('modo_manual_ativo');
     document.getElementById('input-import-sac-vol')?.click();
   });
 
   document.getElementById('btn-modo-manual')?.addEventListener('click', () => {
-    const totalInput = document.getElementById('veiculos-total');
-    const total = parseInt(totalInput?.value, 10);
-    if (!total || total < 1) {
-      alert('Preencha a quantidade total de veículos em manutenção antes de continuar.');
-      totalInput?.focus();
-      return;
-    }
-
-    // Gera N linhas em branco (N = total informado) e reaproveita a MESMA
-    // tabela/tela da importação — só que com a placa digitável e leitor de
-    // OCR, em vez de vir pronta de um arquivo.
-    const veiculosVazios = Array.from({ length: total }, () => ({
-      origem: 'Manual', placa: '', status: '', entrega: '', observacao: '', acao: '', fotos: [],
-    }));
-    AppStorage.set('sac_dados', { veiculos: veiculosVazios, manual: true });
-
+    // O Total (e o resto da "Quantidade de Veículos") ainda não foi
+    // preenchido aqui — essa tela vem DEPOIS (cards 10 a 16). Só marca que
+    // o modo escolhido foi manual; a tabela em branco é gerada mais adiante
+    // (renderizarImprodutivos), quando o Total já estiver preenchido de verdade.
+    AppStorage.remove('sac_dados');
+    AppStorage.set('modo_manual_ativo', true);
     atualizarPrevFornecedores();
-    engine.showCard('17');
+    engine.showCard('10');
   });
 
   // Usado tanto na importação inicial (preenche os totais a partir do XLSX)
@@ -428,10 +419,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderizarImprodutivos() {
-    const dados      = AppStorage.get('sac_dados');
+    let dados        = AppStorage.get('sac_dados');
     const modoSAC    = document.getElementById('modo-sac');
     const modoManual = document.getElementById('modo-manual');
     const aviso      = document.getElementById('aviso-servico-obrig');
+
+    // Modo manual: até aqui só sabíamos QUE era manual (flag marcada no
+    // clique do botão) — agora, chegando neste ponto do fluxo, o Total já
+    // foi preenchido de verdade (cards 10-16, logo antes de Fornecedores).
+    // Gera as linhas em branco agora, na quantidade certa.
+    if (!dados && AppStorage.get('modo_manual_ativo')) {
+      const total = parseInt(document.getElementById('veiculos-total')?.value, 10) || 0;
+      if (total > 0) {
+        const veiculosVazios = Array.from({ length: total }, () => ({
+          origem: 'Manual', placa: '', status: '', entrega: '', observacao: '', acao: '', fotos: [],
+        }));
+        dados = { veiculos: veiculosVazios, manual: true };
+        AppStorage.set('sac_dados', dados);
+      }
+    }
 
     if (dados && dados.veiculos && dados.veiculos.length > 0) {
       if (modoSAC)    modoSAC.style.display    = 'block';
