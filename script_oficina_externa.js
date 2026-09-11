@@ -7,7 +7,7 @@
 // false = esconde o botão "Preenchimento Manual" na tela de escolha,
 // deixando só "Importar Placas do Portal" disponível. Pra reativar o modo
 // manual, é só voltar isso pra true — não precisa mexer em mais nada.
-const PERMITIR_MODO_MANUAL = false;
+const PERMITIR_MODO_MANUAL = true;
 
 document.addEventListener('DOMContentLoaded', () => {
   const form   = document.getElementById('agendamento-form');
