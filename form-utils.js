@@ -946,9 +946,15 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
   container._validarTodos = () => {
     let valido = true;
     const erros = [];
-    // Fora de Serviço = carro ainda não está fisicamente na oficina, então
-    // não faz sentido exigir foto dele.
-    const precisaFoto = v => exigirFoto && v.status !== 'Fora de Serviço';
+    // Duas situações em que o carro não está fisicamente na oficina, então
+    // não faz sentido exigir foto:
+    // 1) Fora de Serviço.
+    // 2) Em Serviço + "Aguardando retorno cliente Fleet/Livre/LP" — orçamento
+    //    já aprovado, mas o cliente ainda não trouxe/devolveu o carro.
+    const precisaFoto = v =>
+      exigirFoto &&
+      v.status !== 'Fora de Serviço' &&
+      !(v.status === 'Em Serviço' && v.acao === 'Aguardando retorno cliente Fleet/Livre/LP');
     estado.forEach((v, idx) => {
       const rotulo = v.placa ? v.placa : `#${idx + 1}`;
       if (placaEditavel && !v.placa) { erros.push(`Veículo ${idx+1}: Placa obrigatória.`); valido = false; }

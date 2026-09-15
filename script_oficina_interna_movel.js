@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (aviso) {
         aviso.textContent = totalVeiculos > 25
           ? '⚠️ Placa, Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Com mais de 25 placas, a foto por veículo NÃO é obrigatória — só a foto da fachada continua exigida.'
-          : '⚠️ Placa, Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Foto é obrigatória em visitas presenciais, exceto para veículos "Fora de Serviço".';
+          : '⚠️ Placa, Status, Dt. Prev. Entrega e Ação são obrigatórios para todos os veículos. Foto é obrigatória em visitas presenciais, exceto para veículos "Fora de Serviço" ou "Em Serviço" com ação "Aguardando retorno cliente Fleet/Livre/LP".';
         aviso.style.display = 'block';
       }
 
