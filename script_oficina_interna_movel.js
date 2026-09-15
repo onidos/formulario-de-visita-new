@@ -523,6 +523,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     AppStorage.remove('sac_dados');
     AppStorage.remove('modo_manual_ativo');
+
+    // Crucial: se a tabela de veículos já tinha sido criada numa passada
+    // anterior (ex: Auditoria com Total preenchido), ela guarda os dados
+    // numa closure em memória — limpar só o campo escondido não muda essa
+    // cópia interna. Sem isso, o botão de Enviar (que só verifica se
+    // #modo-sac está visível) continuava validando a tabela antiga por
+    // trás, mesmo com a tela de Prospecção sendo mostrada. Escondendo
+    // #modo-sac aqui garante que o envio nunca mais olhe pra ela.
+    const modoSAC = document.getElementById('modo-sac');
+    const modoManual = document.getElementById('modo-manual');
+    const semVeiculosMsg = document.getElementById('sem-veiculos-msg');
+    if (modoSAC)        modoSAC.style.display        = 'none';
+    if (modoManual)      modoManual.style.display      = 'none';
+    if (semVeiculosMsg) semVeiculosMsg.style.display  = 'none';
   }
 
   function isPresencial() {
