@@ -1145,6 +1145,30 @@ async function fetchJSON(url) {
   return res.json();
 }
 
+/**
+ * Busca o nome de um fornecedor (oficina) pelo CNPJ, consultando a aba
+ * "Fornecedores" via doGet do Apps Script. Se não achar, der erro, ou
+ * demorar demais (timeout), retorna null silenciosamente — o formulário
+ * simplesmente segue pro preenchimento manual normal, sem travar nem
+ * incomodar o analista com mensagem de erro.
+ */
+async function buscarNomeFornecedor(actionUrl, cnpj, timeoutMs = 6000) {
+  const cnpjLimpo = String(cnpj || '').replace(/\D/g, '');
+  if (!cnpjLimpo || !actionUrl) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${actionUrl}?cnpj=${cnpjLimpo}`, { signal: controller.signal });
+    if (!res.ok) return null;
+    const dados = await res.json();
+    return (dados && dados.encontrado && dados.nome) ? dados.nome : null;
+  } catch (err) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function mostrarStatus(el, msg, tipo) {
   if (!el) return;
   el.textContent = msg;

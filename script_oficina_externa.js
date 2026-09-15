@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSubmit(document.getElementById('submit-btn-prospeccao'));
 
   // ── Validações ────────────────────────────────────────────
-  function validacaoEspecifica(card) {
+  async function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
     // Card 100: foto da fachada obrigatória apenas em visitas presenciais
@@ -218,6 +218,24 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isPresencial() && fotosManuais.fachada.length === 0) {
         alert('Por favor, adicione uma foto da fachada da oficina (obrigatória para visitas presenciais).');
         return false;
+      }
+
+      // Busca o fornecedor pela base de CNPJ (aba "Fornecedores" na
+      // planilha) — se achar, já preenche o nome da oficina no próximo
+      // card. Se não achar (ou a busca falhar/demorar), segue normal pro
+      // preenchimento manual, sem travar nem avisar nada.
+      const cnpjInput = document.getElementById('CNPJ_Oficina');
+      const btnProximo = card.querySelector('.next-btn');
+      const textoOriginal = btnProximo?.textContent;
+      if (btnProximo) { btnProximo.disabled = true; btnProximo.textContent = 'Buscando fornecedor…'; }
+      try {
+        const nome = await buscarNomeFornecedor(form.action, cnpjInput?.value);
+        if (nome) {
+          const lojaInput = document.getElementById('loja');
+          if (lojaInput) lojaInput.value = nome;
+        }
+      } finally {
+        if (btnProximo) { btnProximo.disabled = false; btnProximo.textContent = textoOriginal; }
       }
     }
 

@@ -63,6 +63,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   aplicarMascaraCNPJ(document.getElementById('CNPJ_Oficina'));
 
+  // Busca o fornecedor pela base de CNPJ (aba "Fornecedores" na planilha)
+  // assim que o analista sai do campo — se achar, já preenche o Nome da
+  // Oficina (que fica logo acima nessa mesma tela). Se não achar, segue
+  // pro preenchimento manual normal, sem travar nem avisar nada.
+  document.getElementById('CNPJ_Oficina')?.addEventListener('blur', async () => {
+    const cnpjInput = document.getElementById('CNPJ_Oficina');
+    const lojaInput = document.getElementById('loja');
+    if (!cnpjInput?.value || lojaInput?.value.trim()) return; // já tem nome preenchido, não sobrescreve
+    const nome = await buscarNomeFornecedor(form.action, cnpjInput.value);
+    if (nome && lojaInput) lojaInput.value = nome;
+  });
+
   const enderecoInput  = document.getElementById('endereco');
   const latitudeInput  = document.getElementById('latitude');
   const longitudeInput = document.getElementById('longitude');
