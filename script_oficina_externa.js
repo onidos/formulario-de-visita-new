@@ -167,6 +167,12 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const card = engine.currentCard();
 
+      // Segunda camada de segurança: se por algum motivo chegou até aqui
+      // com Prospecção marcado mas ainda sobrou algo preenchido de veículo
+      // (ex: voltou e trocou o motivo depois de já ter preenchido), limpa
+      // de novo antes de montar o envio.
+      if (isProspeccao()) limparDadosVeiculosProspeccao();
+
       // Modo SAC: valida tabela (serviço + comentário obrigatórios)
       const tabelaContainer = document.getElementById('tabela-improdutivos');
       const modoSAC = document.getElementById('modo-sac');
@@ -278,7 +284,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ta) ta.classList.remove('error');
     }
 
-    if (cardId === '9' && isProspeccao()) { engine.showCard('9-fim'); return false; }
+    if (cardId === '9' && isProspeccao()) {
+      limparDadosVeiculosProspeccao();
+      engine.showCard('9-fim');
+      return false;
+    }
 
     // Ao sair do card de fornecedores (17), renderiza a tabela antes de mostrar card 18
     if (cardId === '17') {
@@ -500,6 +510,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const sel = document.getElementById('motivo');
     if (!sel) return false;
     return Array.from(sel.selectedOptions).some(o => o.value === 'Prospecção');
+  }
+
+  /**
+   * Prospecção não registra veículos — mas se o analista já tinha passado
+   * pelas telas de Quantidade de Veículos (preenchendo Total, etc.) com
+   * outro motivo antes de voltar e trocar pra Prospecção, esses valores
+   * ficavam "escondidos" nos campos e iam junto no envio (mesmo sem
+   * aparecer em tela nem pedir foto). Limpa tudo isso na hora que detecta
+   * Prospecção, pra não ir nada de veículo no envio.
+   */
+  function limparDadosVeiculosProspeccao() {
+    ['veiculos-total', 'veiculos-orcamento', 'veiculos-pendentes', 'veiculos-aprovados',
+     'veiculos-aguardando', 'veiculos-FS', 'veiculos-entregues'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    ['veiculos-json', 'acoes-manual-json'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    [1, 2, 3].forEach(n => {
+      const placa = form.querySelector(`[name="placa${n}"]`);
+      if (placa) placa.value = '';
+      fotosManuais[n] = [];
+      atualizarHiddenFotos(n);
+    });
+    AppStorage.remove('sac_dados');
+    AppStorage.remove('modo_manual_ativo');
   }
 
   function isPresencial() {
