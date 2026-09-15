@@ -544,6 +544,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return document.getElementById('presencial-telefone')?.value === 'Presencial';
   }
 
+  // Ouve a mudança no campo "Motivo" diretamente — assim que o status de
+  // Prospecção muda (virou Prospecção OU deixou de ser), limpa os dados de
+  // veículo na hora, não importa em qual card isso acontece depois. Mais
+  // robusto que depender só do ponto de saída do card 9, que dependia da
+  // pessoa navegar por um caminho específico depois de voltar.
+  let prospeccaoAnterior = isProspeccao();
+  document.getElementById('motivo')?.addEventListener('change', () => {
+    const agora = isProspeccao();
+    if (agora !== prospeccaoAnterior) limparDadosVeiculosProspeccao();
+    prospeccaoAnterior = agora;
+  });
+
   function cardIdAtual() {
     return engine.currentCard()?.id.replace('card-', '') || '';
   }
