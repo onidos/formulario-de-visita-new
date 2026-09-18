@@ -64,11 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
   aplicarMascaraCNPJ(document.getElementById('CNPJ_Oficina'));
 
   // Sugestão de nomes no campo "Nome Completo" do Analista, a partir da aba
-  // "Usuarios" da planilha. Não bloqueia nada — se a busca falhar ou demorar,
-  // o campo continua funcionando normalmente como texto livre.
-  buscarListaUsuarios(form.action).then(nomes => {
-    popularDatalistUsuarios(document.getElementById('lista-analistas'), document.getElementById('nome'), nomes);
-  });
+  // "Usuarios" da planilha. Usa cache local (aparece na hora, sem esperar a
+  // planilha) e atualiza sozinho em segundo plano. Não bloqueia nada — se a
+  // busca falhar ou demorar, o campo continua funcionando como texto livre.
+  carregarSugestoesAnalistas(form.action, document.getElementById('lista-analistas'), document.getElementById('nome'));
 
   // Busca o fornecedor pela base de CNPJ (aba "Fornecedores" na planilha)
   // assim que o analista sai do campo — se achar, já preenche o Nome da
