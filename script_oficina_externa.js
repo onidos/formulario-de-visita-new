@@ -63,6 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   aplicarMascaraCNPJ(document.getElementById('CNPJ_Oficina'));
 
+  // Sugestão de nomes no campo "Nome Completo" do Analista, a partir da aba
+  // "Usuarios" da planilha. Não bloqueia nada — se a busca falhar ou demorar,
+  // o campo continua funcionando normalmente como texto livre.
+  buscarListaUsuarios(form.action).then(nomes => {
+    popularDatalistUsuarios(document.getElementById('lista-analistas'), document.getElementById('nome'), nomes);
+  });
+
   const enderecoInput  = document.getElementById('endereco');
   const latitudeInput  = document.getElementById('latitude');
   const longitudeInput = document.getElementById('longitude');
