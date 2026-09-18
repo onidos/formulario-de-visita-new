@@ -1185,6 +1185,40 @@ async function buscarNomeFornecedor(actionUrl, cnpj, timeoutMs = 6000) {
   }
 }
 
+// Busca a lista de nomes cadastrados na aba "Usuarios" da planilha, para
+// sugerir no campo "Nome Completo" do Analista (autocomplete via <datalist>).
+// Nunca bloqueia nem trava o formulário — se falhar, devolve lista vazia e o
+// campo continua funcionando normalmente como texto livre.
+async function buscarListaUsuarios(actionUrl, timeoutMs = 6000) {
+  if (!actionUrl) return [];
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${actionUrl}?usuarios=1`, { signal: controller.signal });
+    if (!res.ok) return [];
+    const dados = await res.json();
+    return (dados && Array.isArray(dados.usuarios)) ? dados.usuarios : [];
+  } catch (err) {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Preenche um <datalist> com a lista de nomes buscada, ligando-o (via
+// atributo list) ao campo de texto informado — mantém o campo 100% editável,
+// a lista é só sugestão.
+function popularDatalistUsuarios(datalistEl, inputEl, nomes) {
+  if (!datalistEl) return;
+  datalistEl.innerHTML = '';
+  (nomes || []).forEach(nome => {
+    const opt = document.createElement('option');
+    opt.value = nome;
+    datalistEl.appendChild(opt);
+  });
+  if (inputEl && datalistEl.id) inputEl.setAttribute('list', datalistEl.id);
+}
+
 function mostrarStatus(el, msg, tipo) {
   if (!el) return;
   el.textContent = msg;
