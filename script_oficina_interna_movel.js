@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ativarCapturaFoto(btn, (dados) => salvarFotoManual(btn.dataset.target, dados), erroFotoManual, { capture: 'environment' });
   });
   document.querySelectorAll('.foto-manual-galeria-btn').forEach(btn => {
-    ativarCapturaFoto(btn, (dados) => salvarFotoManual(btn.dataset.target, dados), erroFotoManual);
+    ativarCapturaFoto(btn, (dados) => salvarFotoManual(btn.dataset.target, dados), erroFotoManual, { multiplo: true });
   });
 
   // ── Scanner de placa (câmera dedicada, ao lado do campo) ──
