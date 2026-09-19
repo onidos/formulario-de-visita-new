@@ -458,11 +458,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const modoManual = document.getElementById('modo-manual');
     const aviso      = document.getElementById('aviso-servico-obrig');
 
-    // Modo manual: até aqui só sabíamos QUE era manual (flag marcada no
-    // clique do botão) — agora, chegando neste ponto do fluxo, o Total já
-    // foi preenchido de verdade (cards 10-16, logo antes de Fornecedores).
-    // Gera as linhas em branco agora, na quantidade certa.
-    if (!dados && AppStorage.get('modo_manual_ativo')) {
+    // Gera as linhas em branco (modo manual) sempre que não há dados de SAC
+    // importado — isso cobre tanto quem escolheu "Preenchimento Manual" no
+    // card 10b quanto quem fez uma visita completa (Sim), caminho que pula
+    // direto de 9 pra 10 e NUNCA passa pelo card 10b. Sem esse fallback, a
+    // visita completa (o caminho mais comum) nunca marcava modo_manual_ativo
+    // e a tabela de veículos ficava sempre vazia — o Total aparecia certo em
+    // "Volume de Veículos", mas nenhum veículo, ação ou foto era registrado.
+    // Chegando neste ponto do fluxo, o Total já foi preenchido de verdade
+    // (cards 10-16, logo antes de Fornecedores).
+    if (!dados) {
       const total = parseInt(document.getElementById('veiculos-total')?.value, 10) || 0;
       if (total > 0) {
         const veiculosVazios = Array.from({ length: total }, () => ({
@@ -610,6 +615,10 @@ document.addEventListener('DOMContentLoaded', () => {
       tipoOficina: AppStorage.get('tipo_oficina') || '',
       cardAtual:   cardId,
       valores:     coletarValoresForm(form),
+      extra: {
+        modoManualAtivo: !!AppStorage.get('modo_manual_ativo'),
+        sacDados:        AppStorage.get('sac_dados') || null,
+      },
     });
   }
 
@@ -627,6 +636,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!rascunho || !rascunho.valores) return;
 
     restaurarValoresForm(form, rascunho.valores);
+
+    // Restaura os flags de modo (modo_manual_ativo / sac_dados) que vivem no
+    // AppStorage (sessionStorage) e não fazem parte dos campos do form — se
+    // a sessão caiu (app fechado, tela travou) antes de sobreviverem
+    // sozinhos, sem isso o sistema achava "sem veículo nenhum" e pulava a
+    // exigência de placas/fotos, mesmo com o Total já preenchido.
+    if (rascunho.extra) {
+      if (rascunho.extra.modoManualAtivo) AppStorage.set('modo_manual_ativo', true);
+      if (rascunho.extra.sacDados && !AppStorage.get('sac_dados')) {
+        AppStorage.set('sac_dados', rascunho.extra.sacDados);
+      }
+    }
 
     // Reconstrói fotosManuais (1/2/3/fachada) a partir dos hidden
     // restaurados, pra manter as miniaturas e os próximos "adicionar foto"
