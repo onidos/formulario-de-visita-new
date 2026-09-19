@@ -96,21 +96,29 @@ const AppStorage = {
 // a planilha foi gravada. Isso permite reenviar sem redigitar tudo se a conexão
 // cair ou o app for fechado no meio do envio.
 const LocalBackup = {
-  KEY: 'unidas_visita_pendente_v1',
+  // A chave inclui o tipo de oficina (Externa / Interna-Móvel). Sem isso, se
+  // o mesmo celular/navegador for usado pra visitar os dois tipos de oficina
+  // e um envio falhar em cada um antes do reenvio automático dar certo, o
+  // segundo backup sobrescrevia (e perdia) o primeiro — os dois usavam a
+  // mesma chave fixa no localStorage.
+  chave() {
+    const tipo = AppStorage.get('tipo_oficina') || 'geral';
+    return 'unidas_visita_pendente_v1__' + tipo;
+  },
   salvar({ actionUrl, campos, tipoOficina, nomeOficina, envioId }) {
     try {
       const dados = { criadoEm: new Date().toISOString(), actionUrl, campos, tipoOficina, nomeOficina, envioId };
-      localStorage.setItem(this.KEY, JSON.stringify(dados));
+      localStorage.setItem(this.chave(), JSON.stringify(dados));
     } catch (err) { console.warn('Falha ao salvar backup local:', err); }
   },
   obter() {
     try {
-      const raw = localStorage.getItem(this.KEY);
+      const raw = localStorage.getItem(this.chave());
       return raw ? JSON.parse(raw) : null;
     } catch (err) { return null; }
   },
   limpar() {
-    try { localStorage.removeItem(this.KEY); } catch (err) {}
+    try { localStorage.removeItem(this.chave()); } catch (err) {}
   },
 };
 
