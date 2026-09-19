@@ -139,6 +139,15 @@ document.addEventListener('DOMContentLoaded', () => {
     statusId: 'import-sac-vol-status',
     idMap: idMapContagemVeiculos,
     onImportado: (dados) => {
+      // Limpa a tabela antiga (se houver) — sem isso, reimportar uma planilha
+      // (ex: corrigindo o arquivo errado) não atualizava a tela: a tabela
+      // priorizava o que já estava salvo do import anterior e ignorava os
+      // dados novos.
+      const hiddenTabela = document.getElementById('veiculos-json');
+      if (hiddenTabela) hiddenTabela.value = '';
+      const hiddenAcoes = document.getElementById('acoes-manual-json');
+      if (hiddenAcoes) hiddenAcoes.value = '';
+
       atualizarPrevFornecedores();
       // Mostra feedback no card-10b antes de navegar
       const statusEl = document.getElementById('import-sac-vol-status');
@@ -219,6 +228,15 @@ document.addEventListener('DOMContentLoaded', () => {
   async function validacaoEspecifica(card) {
     const cardId = card.id.replace('card-', '');
 
+    // Card 4: em Prospecção, pula a pergunta "visita completa?" (card 4b) —
+    // toda visita de Prospecção é a primeira visita à oficina, então é
+    // sempre considerada completa (não faz sentido perguntar).
+    if (cardId === '4' && isProspeccao()) {
+      document.getElementById('visita-completa-hidden').value = 'Sim';
+      engine.showCard('5');
+      return false;
+    }
+
     // Card 100: foto da fachada obrigatória apenas em visitas presenciais
     if (cardId === '100') {
       if (isPresencial() && fotosManuais.fachada.length === 0) {
@@ -238,7 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const nome = await buscarNomeFornecedor(form.action, cnpjInput?.value);
         if (nome) {
           const lojaInput = document.getElementById('loja');
-          if (lojaInput) lojaInput.value = nome;
+          // Confere de novo aqui (não só antes da busca) — se a pessoa digitou
+          // o nome da oficina manualmente enquanto a busca rodava, não
+          // sobrescreve o que ela digitou.
+          if (lojaInput && !lojaInput.value.trim()) lojaInput.value = nome;
         }
       } finally {
         if (btnProximo) { btnProximo.disabled = false; btnProximo.textContent = textoOriginal; }
@@ -314,9 +335,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return false;
     }
 
-    // Ao sair do card de fornecedores (17), renderiza a tabela antes de mostrar card 18
+    // Ao sair do card de fornecedores (17), renderiza a tabela antes de mostrar
+    // card 18. IMPORTANTE: precisa ser síncrono (sem setTimeout) — senão existia
+    // uma brecha de ~50ms em que o card 18 já aparecia mas a tabela ainda não
+    // tinha sido montada, deixando passar um envio sem veículo nenhum (mesmo
+    // bug do Total "sumindo", só que por um caminho diferente).
     if (cardId === '17') {
-      setTimeout(() => renderizarImprodutivos(), 50);
+      renderizarImprodutivos();
     }
   }
 
