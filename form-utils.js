@@ -691,7 +691,8 @@ function limiteFotosPorTotal(totalVeiculos) {
 const MAX_FOTOS_POR_VEICULO = 3; // usado no modo manual (sempre ≤3 veículos)
 
 const ACOES_VEICULO = [
-  'Aguardando entrega da peça',
+  'Aguardando entrega de peça - fornecimento Unidas',
+  'Aguardando entrega de peça - fornecimento oficina',
   'Aguardando parada cliente Fleet/Livre/LP',
   'Aguardando retorno cliente Fleet/Livre/LP',
   'Carro pronto para retirada (Fleet e Livre)',
@@ -712,6 +713,8 @@ const ACOES_VEICULO = [
 // disso, nem aparecem como opção. Ações que não estão aqui ficam sempre
 // disponíveis, independente do status.
 const ACOES_RESTRITAS_POR_STATUS = {
+  'Aguardando entrega de peça - fornecimento Unidas': 'Pend. Peça',
+  'Aguardando entrega de peça - fornecimento oficina': 'Pend. Peça',
   'Aguardando parada cliente Fleet/Livre/LP': 'Fora de Serviço',
   'Aguardando retorno cliente Fleet/Livre/LP': 'Em Serviço',
 };
