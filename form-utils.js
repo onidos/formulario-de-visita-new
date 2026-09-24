@@ -486,7 +486,10 @@ const MAPA_ETAPAS_FORM = {
   'Aprovação':       'Pend. Aprovação',
   'Pend. Aprovação': 'Pend. Aprovação',
   'Fora de Serviço': 'Fora de Serviço',
-  'Erro Material':   'Erro Material',
+  // Status "Erro Material" foi descontinuado — etapas importadas com esse
+  // valor caem em "Fora de Serviço", que já compartilhava o mesmo campo de
+  // contagem ('fs') e é o mais próximo semanticamente.
+  'Erro Material':   'Fora de Serviço',
 };
 
 // Mapeamento etapa → campo de contagem no formulário
@@ -500,7 +503,6 @@ const MAPA_ETAPAS_CONTAGEM = {
   'Aprovação':       'aprovacao',
   'Pend. Aprovação': 'aprovacao',
   'Fora de Serviço': 'fs',
-  'Erro Material':   'fs',
 };
 
 // Mesmo agrupamento de MAPA_ETAPAS_CONTAGEM, mas a partir do rótulo já
@@ -514,7 +516,6 @@ const MAPA_STATUS_CONTAGEM = {
   'Em Serviço':       'servico',
   'Pend. Peça':       'pecas',
   'Pend. Aprovação':  'aprovacao',
-  'Erro Material':    'fs',
 };
 
 /**
@@ -694,7 +695,7 @@ const ACOES_VEICULO = [
   'Aguardando entrega de peça - fornecimento Unidas',
   'Aguardando entrega de peça - fornecimento oficina',
   'Aguardando parada cliente Fleet/Livre/LP',
-  'Aguardando retorno cliente Fleet/Livre/LP',
+  'Aguardando cliente retornar Fleet/Livre/LP',
   'Carro pronto para retirada (Fleet e Livre)',
   'Carro pronto, orientado devolução em loja',
   'Cobrado celeridade na finalização do serviço',
@@ -715,8 +716,16 @@ const ACOES_VEICULO = [
 const ACOES_RESTRITAS_POR_STATUS = {
   'Aguardando entrega de peça - fornecimento Unidas': 'Pend. Peça',
   'Aguardando entrega de peça - fornecimento oficina': 'Pend. Peça',
+  'Fornecedor orientado enviar o orçamento': 'Pend. Orçamento',
+  'Direcionado aprovação RAC': 'Pend. Aprovação',
+  'Direcionado aprovação Fleet/Livre': 'Pend. Aprovação',
+  'Aguardando cliente retornar Fleet/Livre/LP': 'Em Serviço',
+  'Cobrado celeridade na finalização do serviço': 'Em Serviço',
+  'Carro pronto para retirada (Fleet e Livre)': 'Em Serviço',
+  'Carro pronto, orientado devolução em loja': 'Em Serviço',
   'Aguardando parada cliente Fleet/Livre/LP': 'Fora de Serviço',
-  'Aguardando retorno cliente Fleet/Livre/LP': 'Em Serviço',
+  'Sem agendamento Fleet/Livre': 'Fora de Serviço',
+  'Orientado a retirar o carro em loja': 'Fora de Serviço',
 };
 
 /** Lista de ações permitidas pro status atual (filtra as restritas de outros status). */
@@ -822,7 +831,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
                   <select data-idx="${idx}" data-field="status"
                     style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:110px;background:#fff;">
                     <option value="">— Selecione —</option>
-                    ${['Fora de Serviço','Pend. Orçamento','Pend. Aprovação','Erro Material','Pend. Peça','Em Serviço']
+                    ${['Fora de Serviço','Pend. Orçamento','Pend. Aprovação','Pend. Peça','Em Serviço']
                       .map(s => `<option value="${s}" ${v.status === s ? 'selected' : ''}>${s}</option>`).join('')}
                   </select>
                 </td>
