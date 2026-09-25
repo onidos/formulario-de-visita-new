@@ -265,7 +265,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Card 10: se total = 0 pula direto para fornecedores (sem perguntar modo)
+    // Card 10: se total = 0, pula as perguntas de detalhamento e pede a
+    // justificativa da visita (motivo já garantidamente ≠ Prospecção aqui —
+    // Prospecção nunca chega até este card, sai antes pelo card 9).
     if (cardId === '10') {
       const total = parseInt(document.getElementById('veiculos-total')?.value) || 0;
       if (total === 0) {
@@ -275,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (el) el.value = '0';
         });
         AppStorage.remove('sac_dados');
-        engine.showCard('17');
+        engine.showCard('10z');
         return false;
       }
     }

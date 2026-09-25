@@ -256,7 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Card 9-alt: se total = 0 pula direto para fornecedores
+    // Card 9-alt: se total = 0, pula as perguntas de detalhamento e pede a
+    // justificativa da visita (motivo já garantidamente ≠ Prospecção aqui).
     if (cardId === '9-alt') {
       const total = parseInt(document.getElementById('veiculos-manutencao')?.value) || 0;
       if (total === 0) {
@@ -266,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (el) el.value = '0';
         });
         AppStorage.remove('sac_dados');
-        engine.showCard('16-alt');
+        engine.showCard('justificativa-alt');
         return false;
       }
     }
