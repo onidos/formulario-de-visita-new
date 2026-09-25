@@ -63,11 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   aplicarMascaraCNPJ(document.getElementById('CNPJ_Oficina'));
 
-  // Sugestão de nomes no campo "Nome Completo" do Analista, a partir da aba
-  // "Usuarios" da planilha. Usa cache local (aparece na hora, sem esperar a
-  // planilha) e atualiza sozinho em segundo plano. Não bloqueia nada — se a
-  // busca falhar ou demorar, o campo continua funcionando como texto livre.
-  carregarSugestoesAnalistas(form.action, document.getElementById('lista-analistas'), document.getElementById('nome'));
+  // Campo "Nome Completo" do Analista travado na lista da aba "Usuarios" da
+  // planilha (não é mais texto livre). Usa cache local (aparece na hora, sem
+  // esperar a planilha) e atualiza sozinho em segundo plano.
+  carregarSugestoesAnalistas(form.action, document.getElementById('nome'), document.getElementById('nome-status'));
 
   const enderecoInput  = document.getElementById('endereco');
   const latitudeInput  = document.getElementById('latitude');

@@ -25,8 +25,10 @@
         <h2>Analista</h2>
         <div class="input-group">
           <label for="nome">Nome Completo</label>
-          <input type="text" id="nome" autocomplete="name" name="entry.277269067" required data-minlength="5" data-onlyletters="true" list="lista-analistas">
-          <datalist id="lista-analistas"></datalist>
+          <select id="nome" name="entry.277269067" required disabled>
+            <option value="" disabled selected>Carregando lista de analistas…</option>
+          </select>
+          <p id="nome-status" style="font-size:.78rem;margin-top:4px;"></p>
         </div>
         <div class="navigation-buttons">
           <button type="button" class="next-btn" data-card="0b">Próximo</button>
@@ -452,7 +454,6 @@
                       <option value="Fora de Serviço">Fora de Serviço</option>
                       <option value="Pend. Orçamento">Pend. Orçamento</option>
                       <option value="Pend. Aprovação">Pend. Aprovação</option>
-                      <option value="Erro Material">Erro Material</option>
                       <option value="Pend. Peça">Pend. Peça</option>
                       <option value="Em Serviço">Em Serviço</option>
                     </select>
@@ -497,7 +498,6 @@
                       <option value="Fora de Serviço">Fora de Serviço</option>
                       <option value="Pend. Orçamento">Pend. Orçamento</option>
                       <option value="Pend. Aprovação">Pend. Aprovação</option>
-                      <option value="Erro Material">Erro Material</option>
                       <option value="Pend. Peça">Pend. Peça</option>
                       <option value="Em Serviço">Em Serviço</option>
                     </select>
@@ -542,7 +542,6 @@
                       <option value="Fora de Serviço">Fora de Serviço</option>
                       <option value="Pend. Orçamento">Pend. Orçamento</option>
                       <option value="Pend. Aprovação">Pend. Aprovação</option>
-                      <option value="Erro Material">Erro Material</option>
                       <option value="Pend. Peça">Pend. Peça</option>
                       <option value="Em Serviço">Em Serviço</option>
                     </select>
