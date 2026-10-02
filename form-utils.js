@@ -612,7 +612,9 @@ function processarArquivoSAC(file, { onSuccess, onError }) {
       const veiculosComDuplicatas = ordenados.map(row => ({
         placa:    String(row['Placa'] || '').trim(),
         veiculo:  String(row['Veículo'] || '').trim(),
-        entrega:  formatarDataParaInput(String(row['Previsão Entrega'] || '')),
+        // Dt. Prev. Entrega fica em branco mesmo quando a planilha traz uma
+        // previsão — o analista deve preencher manualmente na revisão.
+        entrega:  '',
         etapaOriginal: String(row['Etapas do Processo'] || '').trim(),
         status:   mapearEtapaForm(String(row['Etapas do Processo'] || '')),
         parada:   String(row['Parada Veículo'] || '-').trim(),
@@ -797,7 +799,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
             <tr>
               <th style="${estiloTh}width:28px;">#</th>
               <th style="${estiloTh}white-space:nowrap;">Placa <span style="color:#ffd">*</span></th>
-              <th style="${estiloTh}min-width:150px;">Veículo</th>
+              <th style="${estiloTh}min-width:140px;">Veículo</th>
               <th style="${estiloTh}">Status <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}">Entrega <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}">Observação</th>
