@@ -573,6 +573,21 @@ function formatarDataParaInput(dataStr = '') {
   return `${match[3]}-${match[2]}-${match[1]}`;
 }
 
+/**
+ * Decide se a "Previsão Entrega" vinda da planilha pode vir pré-preenchida:
+ * só quando a data prevista é HOJE ou no futuro. Se já venceu (ou o campo
+ * vier vazio/"-"), retorna '' — força o analista a revisar e preencher a
+ * data correta na mão, em vez de deixar uma previsão antiga passar batido.
+ */
+function dataEntregaAutomatica(dataStr = '') {
+  const convertida = formatarDataParaInput(dataStr); // 'AAAA-MM-DD' ou ''
+  if (!convertida) return '';
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dataPrevista = new Date(convertida + 'T00:00:00');
+  return dataPrevista >= hoje ? convertida : '';
+}
+
 function parsearDataParaOrdenacao(dataStr = '') {
   // Retorna timestamp para ordenação; '-' ou vazio = muito recente (vai para o fim)
   if (!dataStr || dataStr === '-') return Infinity;
@@ -612,9 +627,10 @@ function processarArquivoSAC(file, { onSuccess, onError }) {
       const veiculosComDuplicatas = ordenados.map(row => ({
         placa:    String(row['Placa'] || '').trim(),
         veiculo:  String(row['Veículo'] || '').trim(),
-        // Dt. Prev. Entrega fica em branco mesmo quando a planilha traz uma
-        // previsão — o analista deve preencher manualmente na revisão.
-        entrega:  '',
+        // Dt. Prev. Entrega: só vem pré-preenchida se a previsão da planilha
+        // ainda for hoje ou no futuro. Se já estiver vencida (ou vazia),
+        // fica em branco — o analista revisa e preenche manualmente.
+        entrega:  dataEntregaAutomatica(String(row['Previsão Entrega'] || '')),
         etapaOriginal: String(row['Etapas do Processo'] || '').trim(),
         status:   mapearEtapaForm(String(row['Etapas do Processo'] || '')),
         parada:   String(row['Parada Veículo'] || '-').trim(),
