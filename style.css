@@ -71,8 +71,16 @@ body {
 /* Telas de computador: caixa mais larga, para a tabela de veículos caber sem cortar */
 @media (min-width: 1024px) {
   .container {
-    max-width: 1000px;
-    width: min(90vw, 1000px);
+    max-width: 1400px;
+    width: min(96vw, 1400px);
+  }
+}
+
+/* Telas bem largas (monitores grandes): mais espaço ainda, evita scroll lateral na tabela */
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1600px;
+    width: min(94vw, 1600px);
   }
 }
 
