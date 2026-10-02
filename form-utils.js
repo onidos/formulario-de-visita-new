@@ -765,6 +765,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
     if (!hiddenInput) return;
     hiddenInput.value = JSON.stringify(estado.map(v => ({
       placa:   v.placa,
+      veiculo: v.veiculo || '', // Modelo do veículo — só vem preenchido na importação da planilha (coluna "Veículo"); no preenchimento manual fica vazio.
       status:  v.status || v.etapaOriginal,
       entrega: v.entrega,
       observacao: v.observacao || '',
@@ -796,6 +797,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
             <tr>
               <th style="${estiloTh}width:28px;">#</th>
               <th style="${estiloTh}white-space:nowrap;">Placa <span style="color:#ffd">*</span></th>
+              <th style="${estiloTh}min-width:150px;">Veículo</th>
               <th style="${estiloTh}">Status <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}">Entrega <span style="color:#ffd">*</span></th>
               <th style="${estiloTh}">Observação</th>
@@ -827,6 +829,7 @@ function inicializarTabelaVeiculos({ containerId, hiddenInputId, veiculos, exigi
                     ` : ''}
                   `}
                 </td>
+                <td style="${estiloTd}color:#555;font-size:.78rem;">${v.veiculo ? v.veiculo : '<span style="color:#aaa;">—</span>'}</td>
                 <td style="${estiloTd}">
                   <select data-idx="${idx}" data-field="status"
                     style="font-size:.78rem;padding:4px 2px;border:1px solid #ccc;border-radius:5px;width:100%;min-width:110px;background:#fff;">
