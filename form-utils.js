@@ -611,7 +611,13 @@ function processarArquivoSAC(file, { onSuccess, onError }) {
     try {
       const wb   = XLSX.read(e.target.result, { type: 'array' });
       const ws   = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      // raw:false força o SheetJS a devolver o texto exibido na célula (ex:
+      // "16/10/2026 17:00") em vez do valor bruto — importante pras colunas
+      // de data/hora: se a célula da planilha for uma data "de verdade" (não
+      // texto), o valor bruto vem como número de série (ex: 46673.708...),
+      // que não bate com o regex dd/mm/aaaa usado mais abaixo e fazia a data
+      // ficar sempre em branco, mesmo preenchida.
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
 
       if (rows.length === 0) { onError('Nenhum veículo encontrado no arquivo.'); return; }
 
